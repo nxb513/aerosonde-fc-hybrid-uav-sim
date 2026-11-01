@@ -1,0 +1,138 @@
+name: e3
+
+# Thi nghiem E3 (bay vong kin den khi het H2 hoac SoC < 30 %), xem code/EXPERIMENTS.md.
+#   stage = explore: 2000 chuyen bay tham do (E3X), 20 job -> E3X-all
+#   stage = eval:    huan luyen mo hinh tu E3X-all cua run explore_run (+ learning curve),
+#                    roi 2640 chuyen bay danh gia (E3), 60 job chay 20 job mot luc -> E3-all
+#   stage = test:    6 chuyen bay ngan (E3T)
+# Chay lai job loi ("Re-run failed jobs"): job tai checkpoint cua chinh no va chay tiep.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "explore | eval | test"
+        required: true
+        default: "explore"
+      explore_run:
+        description: "Run id cua stage explore (bat buoc khi stage = eval)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  EXP: ${{ inputs.stage == 'eval' && 'E3' || (inputs.stage == 'test' && 'E3T' || 'E3X') }}
+  NJOBS: ${{ inputs.stage == 'eval' && '60' || '20' }}
+
+jobs:
+  train:
+    if: inputs.stage == 'eval'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: E3X-all
+          path: code/results/E3X
+          run-id: ${{ inputs.explore_run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2024a
+          products: Optimization_Toolbox Statistics_and_Machine_Learning_Toolbox
+      - uses: matlab-actions/run-command@v2
+        with:
+          command: cd code; setup_paths; e3_train_all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: E3-models
+          path: code/results/E3/models.mat
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E3X-report
+          path: code/results/E3X/report/
+          retention-days: 90
+
+  sim:
+    needs: train
+    if: always() && (needs.train.result == 'success' || needs.train.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        job: ${{ fromJSON(inputs.stage == 'eval' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]' || '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        if: inputs.stage == 'eval'
+        with:
+          name: E3-models
+          path: code/results/E3
+      - name: Lay checkpoint cua lan chay truoc (neu co)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ env.EXP }}-ckpt-${{ matrix.job }}
+          path: code/results/${{ env.EXP }}
+      - uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2024a
+          products: Optimization_Toolbox
+      - uses: matlab-actions/run-command@v2
+        with:
+          command: cd code; setup_paths; run_chunk('${{ env.EXP }}', ${{ matrix.job }}, ${{ env.NJOBS }})
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXP }}-chunk-${{ matrix.job }}
+          path: code/results/${{ env.EXP }}/chunk_*.mat
+          retention-days: 30
+      # Checkpoint luon duoc tai len (ke ca khi job loi/het gio) de khong mat du lieu.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ env.EXP }}-ckpt-${{ matrix.job }}
+          path: |
+            code/results/${{ env.EXP }}/ckpt_*.mat
+            code/results/${{ env.EXP }}/fckpt_*.mat
+          retention-days: 30
+          overwrite: true
+
+  gather:
+    needs: sim
+    if: always() && needs.sim.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ env.EXP }}-chunk-*
+          path: code/results/${{ env.EXP }}
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ env.EXP }}-ckpt-*
+          path: code/results/${{ env.EXP }}
+          merge-multiple: true
+      - uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2024a
+          products: Statistics_and_Machine_Learning_Toolbox
+      - uses: matlab-actions/run-command@v2
+        with:
+          command: cd code; setup_paths; gather_results('${{ env.EXP }}'); if strcmp('${{ env.EXP }}', 'E3'), e3_analysis; end
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXP }}-all
+          path: |
+            code/results/${{ env.EXP }}/all_*.mat
+            code/results/${{ env.EXP }}/all_*.csv
+            code/results/${{ env.EXP }}/report/
+          retention-days: 90

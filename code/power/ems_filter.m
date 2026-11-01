@@ -6,12 +6,16 @@ function [Pfc, Psc, es] = ems_filter(pp, s, P_dem, dt)
 %   fL = 0.125 Hz, fH = 1 Hz; khi sieu tu dang nap dung (1 - SoC). Khong co sieu tu:
 %   f_c = 0.5 Hz co dinh [R3].
 %   Bo sung (GT): hieu chinh SoC pin ve soc_ref va nang luong sieu tu ve 0.5.
+%   Muc bu do planner E3 chon: s.ems.fc_fix (Hz) dat tan so cat co dinh thay cho
+%   luat thich nghi; f_c thap -> pin/sieu tu ganh nhieu hon, FC muot hon.
 es = s.ems;
 if ~isfield(es, 'P_lf'), es.P_lf = P_dem; es.prev_sc = 0; end
 k_soc = 2.0; soc_ref = s.soc0;
 k_e   = 0.5;
 soc = 1 - s.it/pp.bat.cell.Q;
-if pp.sc.use
+if isfield(es, 'fc_fix') && ~isempty(es.fc_fix)
+    fc = es.fc_fix;
+elseif pp.sc.use
     e = (s.v_sc/pp.sc.Vmax)^2;
     socsc = (e - pp.sc.e_min)/(1 - pp.sc.e_min);
     if es.prev_sc < 0, socsc = 1 - socsc; end

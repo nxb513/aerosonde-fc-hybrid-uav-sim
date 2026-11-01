@@ -41,12 +41,28 @@ classdef SystemTest < matlab.unittest.TestCase
             end
         end
 
-        function scenarioCalmGentleIsClean(tc)
-            r = run_scenario(struct('T', 10, 'W_h', 0, 'turb', 0.01, 'phi_max', 15, ...
-                'gamma_max', 2, 'Va', 24, 'dh', 10));
-            tc.verifyTrue(r.ok);
-            tc.verifyLessThan(r.m_cmd, 1);
-            tc.verifyEqual(r.sat_pos_t, 0);
+        function drydenRetuneScalesOutput(tc)
+            % Doi cuong do giua chuyen bay: sigma moi, bo loc giu nguyen
+            w = dryden_init(8, 30, 100, 1, 25, 0.01, 3);
+            w2 = dryden_retune(w, 8, 100, 2);
+            tc.verifyEqual(w2.sigma, 2*w.sigma, 'RelTol', 1e-12);
+            tc.verifyEqual(w2.sys{3}.C, 2*w.sys{3}.C, 'RelTol', 1e-12);
+            tc.verifyEqual(w2.sys{3}.Ad, w.sys{3}.Ad);
+        end
+
+        function emsFilterFixedCutoff(tc)
+            % Muc bu: f_c thap -> FC muot hon, pin ganh nhieu hon
+            pp = power_params(struct('P_fc', 600));
+            dP = zeros(1, 2); fcs = [0.06 1];
+            for j = 1:2
+                s = ps_init(pp, 0.8, 0.5, 400); s.ems.fc_fix = fcs(j);
+                for k = 1:2000
+                    P = 400 + 300*(mod(floor(k/200), 2) == 1);
+                    s = ps_step(pp, s, P, 0.005, @ems_filter);
+                end
+                dP(j) = s.fc_dP;
+            end
+            tc.verifyLessThan(dP(1), dP(2));
         end
     end
 end

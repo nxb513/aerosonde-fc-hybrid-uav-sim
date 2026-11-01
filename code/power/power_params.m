@@ -51,6 +51,7 @@ fc.eta_F_hi = 0.9; fc.eta_F_lo = 0.4; fc.P_eta_switch = 50*s;   % [R24]
 fc.mass  = cfg.P_fc/cfg.fc_wkg;
 m_H2 = 0.6*cfg.P_fc*cfg.endur_h*3600/(0.45*LHV);
 fc.mass_tank = m_H2/0.014;              % [R26]
+fc.m_H2_cap = m_H2;                     % dung tich H2 khi nap day (kg)
 fc.deg = struct('load_uV', 0.4185, 'idle_uV_h', 8.662, 'high_uV_h', 10.00, ...
                 'startstop_uV', 13.79, 'k', 1.72, 'idle_frac', 0.05, 'high_frac', 0.8);  % [R16][R17]
 pp.fc = fc;

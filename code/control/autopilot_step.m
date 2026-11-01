@@ -1,13 +1,15 @@
 function [cmd, st, info] = autopilot_step(ap, st, meas, ref, phi_max, dt)
 %AUTOPILOT_STEP Mot buoc autopilot: roll/course (aileron), pitch/altitude (elevator),
 %   airspeed (ga), yaw damper washout (rudder) [R37, ch. 6].
-%   meas: phi theta p q r chi h Va;  ref: chi_c h_c Va_c;  phi_max: bank toi da.
+%   meas: phi theta p q r chi h Va;  ref: chi_c h_c Va_c (phi_ff tuy chon: roll
+%   feed-forward khi bam quy dao tron [R37, Eq. 10.18]);  phi_max: bank toi da.
 %   Anti-windup: dung tich phan khi dau ra vong bi bao hoa (GT).
 %   cmd = [de; da; dr; dt].
 if isempty(st), st = struct('i_chi', 0, 'i_h', 0, 'i_V', 0, 'x_wo', 0); end
+phi_ff = 0; if isfield(ref, 'phi_ff'), phi_ff = ref.phi_ff; end
 
 e_chi = mod(ref.chi_c - meas.chi + pi, 2*pi) - pi;
-phi_u = ap.kp_chi*e_chi + ap.ki_chi*st.i_chi;
+phi_u = phi_ff + ap.kp_chi*e_chi + ap.ki_chi*st.i_chi;
 phi_c = min(max(phi_u, -phi_max), phi_max);
 if phi_c == phi_u, st.i_chi = st.i_chi + e_chi*dt; end
 
