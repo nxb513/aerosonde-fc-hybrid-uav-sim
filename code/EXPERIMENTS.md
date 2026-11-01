@@ -1,103 +1,163 @@
-# Kế hoạch thí nghiệm — Aerosonde chuyển đổi sang FC hybrid
+# Thiết kế thí nghiệm — Aerosonde FC hybrid, bay vòng kín đến khi cạn nhiên liệu (E3)
 
 **Nguyên tắc:**
-- Mọi lựa chọn khó hoặc chưa có số liệu đều được **quét lưới** và ghi rõ là giả thiết (GT).
-- Số liệu có nguồn ghi mã [Rxx].
-- Mọi dải tham số đều suy ra từ **đặc tính bay tính bằng chính mô hình** (`checks/flight_envelope.m`, kết quả trong `results/flight_envelope.md`).
+- Mọi lựa chọn khó hoặc chưa có số liệu đều được **quét lưới** hoặc ghi rõ là giả thiết (GT).
+- Số liệu có nguồn ghi mã [Rxx] (tài liệu đã đọc toàn văn).
+- Dải tham số máy bay suy ra từ **đặc tính bay tính bằng chính mô hình** (`checks/flight_envelope.m`).
+- Thiết kế cũ E1/E2 (quyết định một lần trước mỗi đoạn 45 s) **đã hủy**. Toàn bộ nằm trong thư mục rác `_rac/` (không thuộc repo) và không dùng cho kết quả nào.
 
 ## 1. Nền máy bay: Aerosonde [R37, App. E]
 
 **Nguồn và độ tin cậy:**
-- Tham số lấy từ Beard & McLain [R37, Bảng E.1–E.2]. [R37] cho biết bộ tham số gốc từ AeroSim Blockset (Unmanned Dynamics); mô hình Aerosonde AeroSim cũng được Samar, Gorinevsky & Boyd (Stanford) dùng.
+- Tham số lấy từ Beard & McLain [R37, Bảng E.1–E.2]. [R37] cho biết bộ tham số gốc từ AeroSim Blockset (Unmanned Dynamics).
 - Aerosonde thật: sải 2.9 m, rỗng khoảng 8 kg, MTOW 13–14 kg, động cơ xăng khoảng 1 kW. Đây là nguồn bách khoa, chỉ dùng để kiểm tra kích cỡ.
 
 **Kiểm tra hợp lý** (mô hình, bus 42.9 V, CG tham chiếu):
 
 | Đại lượng | Giá trị | Nhận xét |
 |---|---|---|
-| CL_max | 1.23 (α0 = 14°) | α0 = 27° của [R37] cho CL_max = 2.42, phi thực tế → GT: α0 ∈ [12, 16]° |
+| CL_max | 1.23 (α0 = 14°) | α0 = 27° của [R37] cho CL_max = 2.42, phi thực tế → GT α0 = 14° |
 | Vận tốc stall | 16.2 / 17.6 / 18.9 / 20.1 m/s ở 11 / 13 / 15 / 17 kg | — |
-| Vận tốc trim khả thi | 18–31 m/s (11 kg) … 22–30 m/s (17 kg) | — |
-| Công suất điện ở 25 m/s | 394–465 W | → định cỡ FC 400–800 W |
-| Góc leo tối đa ở 25 m/s | 6.5–11.4° | → lưới góc leo |
-| Bank quay vòng đều tối đa | 40–57° | → lưới bank |
-| Dự trữ ổn định ở CG tham chiếu | 0.49 c̄ | rất cao: elevator trim −10° đến −16° ở 25 m/s, tới −21° ở 20 m/s, 13 kg |
-| Các mode | short-period −4.7 ± 9.7i, phugoid −0.04 ± 0.50i, roll −21, dutch-roll −1.4 ± 5.8i, spiral +0.05 (hơi mất ổn định, đúng [R37]) | hợp lý |
+| Vận tốc trim khả thi | 18–31 m/s (11 kg) … 22–30 m/s (17 kg) | → ứng viên V_a ∈ {22, 25, 28} |
+| Công suất điện ở 25 m/s | 394–465 W | → FC 600 W |
+| Góc leo tối đa ở 25 m/s | 6.5–11.4° | → ứng viên γ̄ ∈ {2, 5, 8}° |
+| Bank quay vòng đều tối đa | 40–57° | → ứng viên φ̄ ∈ {15, 25, 35, 45}° |
+| Dự trữ ổn định ở CG tham chiếu | 0.49 c̄ (rất cao) | → CG là biến thiết kế, dịch lùi 2–8 cm |
+| Các mode | short-period −4.7 ± 9.7i, phugoid −0.04 ± 0.50i, roll −21, dutch-roll −1.4 ± 5.8i, spiral +0.05 | hợp lý |
 
-- **Hệ quả của dự trữ ổn định cao:** CG là biến thiết kế của bộ chuyển đổi. Dịch lùi 2–8 cm cho dự trữ ổn định 38–7% c̄.
-- **GT về servo:** [R37] không cho thông số servo. Danh định ωn = 100 rad/s, ζ = 0.707, trễ 0.07 s, tốc độ 200°/s, giới hạn góc 25°; E1 quét trễ 0.03–0.08 s, tốc độ 100–250°/s, góc 20–30°.
-- **GT về hệ số khí động:** bất định 10% (1σ), vì [R37] không cho độ lệch chuẩn.
+**Giả thiết (GT):**
+- Servo: [R37] không cho thông số. Dùng bậc 2, ωn = 100 rad/s, ζ = 0.707, trễ 0.07 s, tốc độ 200°/s, giới hạn góc 25°.
+- Hệ số khí động: bất định 10% (1σ), vì [R37] không cho độ lệch chuẩn. Mỗi kịch bản lấy một mẫu (`ac_perturb`).
+- Vận tốc nào không trim được (ví dụ 22 m/s với cấu hình nặng, CG lệch trước, elevator cần vượt 25°) thì bị loại khỏi tập ứng viên của chuyến bay đó.
 
 ## 2. Hệ nguồn
 
-- **Kiến trúc:** bán chủ động [R3] (chính); thụ động [R5][R24] (ablation).
-- **FC:** đường phân cực AeroStack [R24], co theo diện tích cell; τ = Td/3 [R19].
-  - P_fc ∈ {400, 600, 800} W.
-  - Công suất riêng {224 [R5], 458 [R3]} W/kg.
-  - Td ∈ {1, 10, 20} s; giới hạn tốc độ tăng dòng {2, 5} A/s (theo stack 200 W) [R25].
-- **Bình H₂:** composite 1.4% H₂ theo khối lượng [R26]; lượng H₂ cho {1, 2} h ở 60% P_fc với hiệu suất 45% (GT).
-- **Pin:** LiFePO₄ 13S (42.9 V, gần V_max 44.4 V của động cơ [R37]), 1P hoặc 2P [R4]; lão hóa theo [R18].
-- **Siêu tụ:** {không, Yunasko 7 F 25 V [R5], Maxwell 58 F 16 V [R3]}.
-- **Khối lượng:** tháo động cơ xăng + nhiên liệu m_remove ∈ [1.5, 3] kg (GT).
-  - Cấu hình E2 "nhẹ" (600 W @ 458 W/kg, 1 h): khoảng 13.7 kg.
-  - Cấu hình E2 "nặng" (600 W @ 224 W/kg, 2 h): khoảng 16.8 kg.
+- **Kiến trúc:** bán chủ động [R3]: FC và siêu tụ qua DC/DC, pin nối thẳng bus. Kiến trúc thụ động [R5][R24] chỉ dùng cho ablation A9.
+- **FC:** đường phân cực AeroStack [R24], co theo diện tích cell; trễ kích hoạt τ = Td/3 [R19]; giới hạn tốc độ tăng dòng 2 A/s cho stack 200 W [R25].
+  - Hai cấu hình:
+    - **nhẹ:** 600 W @ 458 W/kg [R3], bình 1 h, khoảng 13.7 kg;
+    - **nặng:** 600 W @ 224 W/kg [R5], bình 2 h, khoảng 16.8 kg.
+  - Td = 10 s (danh định). S1 xét Td = 1 và 20 s.
+- **Bình H₂:** composite 1.4% H₂ theo khối lượng [R26]. Dung tích tính cho thời gian thiết kế ở 60% P_fc, hiệu suất 45% (GT).
+  - **Mức nạp ban đầu** {25, 50, 100}% dung tích; khối lượng bình giữ nguyên.
+- **Pin:** LiFePO₄ 13S (42.9 V) [R4]; lão hóa [R18].
+- **Siêu tụ:** Maxwell 58 F 16 V [R3], mô hình C–ESR. A5 bỏ siêu tụ.
+- **EMS lọc tần số** [R3]: FC nhận thành phần tần số thấp, siêu tụ nhận phần cao, pin bù phần còn lại.
+  - **Mức bù** = tần số cắt f_c ∈ {0.06, 0.3, 1} Hz [R3][R15], do planner chọn. f_c thấp nghĩa là pin/siêu tụ gánh nhiều hơn, FC chạy mượt hơn.
+  - Baseline: f_c thích nghi theo SoC siêu tụ [R3], luật [R27], ECMS [R30].
 
 ## 3. Gió (không cần địa điểm; "mùa" = mức gió)
 
-- Gió trung bình W_h ∈ [0, 12] m/s, tức 0–50% vận tốc hành trình (MAV thường gặp gió 20–50% vận tốc [R37, mục 2.4]).
-- Nhiễu Dryden tầng thấp [R12] với hệ số cường độ ∈ [0.5, 3] (GT).
-- Độ cao bay 100 m.
+- **Mức gió** W̄ ∈ {0, 4, 8, 12} m/s, tức 0–50% vận tốc hành trình (MAV thường gặp gió 20–50% vận tốc [R37, mục 2.4]).
+- **Gió trung bình theo nhiệm vụ** (GT):
+  - Lấy trong U[W̄ − 2, W̄ + 2] (không âm). Hướng trôi U[−30°, 30°] giữa hai nhiệm vụ.
+  - Chuyển dần với hằng số thời gian 20 s.
+- **Nhiễu Dryden tầng thấp** [R12]: hệ số cường độ U[0.5, 3] (GT); nhân đôi trong nhiệm vụ "giữ quỹ đạo trong gió giật".
+- **Hệ quả:** không dùng dữ liệu gió thật (ERA5), nên **không tuyên bố "gió thật"** khi viết bài.
 
-## 4. Nhiệm vụ và quỹ đạo ứng viên
+## 4. Nhiệm vụ và planner
 
-- **Đoạn nhiệm vụ:** bay thẳng ở trim → đổi hướng Δχ và leo Δh → giữ. Thời lượng 45 s.
-- **Ứng viên:** bank tối đa φ̄, góc leo tối đa γ̄, vận tốc V_a.
-  - Bank lớn + leo dốc = "giữ quỹ đạo gắt, để pin/siêu tụ bù".
-  - Bank nhỏ + leo thoải = "đổi quỹ đạo".
-- **Autopilot:** successive loop closure [R37, ch. 6] cùng yaw damper washout. Vòng pitch dùng thiết kế bền theo CG và trễ servo (GT).
+**Chuỗi nhiệm vụ** (`flight/task_specs`, `task_make`): ngẫu nhiên theo seed, giống nhau với mọi chính sách. λ và hạn hoàn thành là GT.
 
-## 5. Lưới thí nghiệm
+| Loại | Hình học | λ | Hạn = T_ref × |
+|---|---|---|---|
+| Chuyển chặng | waypoint 1–2.5 km, lệch hướng ±120° | 0.2 | 2.0 |
+| Đổi hướng | 90/135/180° rồi bay thẳng 400 m | 0.5 | 1.5 |
+| Leo/hạ | 20–60 m (giữ trong 60–250 m) | 0.5 | 1.5 |
+| Bay vòng chờ | 2 vòng, bán kính 120–250 m | 0.8 | 1.25 |
+| Quét luống cày | 4 đường dài 400–700 m, cách nhau 80–160 m | 0.8 | 1.25 |
+| Giữ quỹ đạo trong gió giật | thẳng 1.5 km, nhiễu ×2 | 0.8 | 1.25 |
 
-| | E1 (ngẫu nhiên, 10 000) | E2 (có cấu trúc, 20 736) |
+- **T_ref:** độ dài đường bay / 25 m/s; các cung quay tính với bán kính ứng với bank 30°; leo/hạ ở 5°.
+- **Bỏ nhiệm vụ:** nếu quá max(3 T_ref, T_ref + 120 s).
+- **Bám đường** theo trường vector [R37, Eq. 10.9, 10.15], roll feed-forward [R37, Eq. 10.18], chuyển chặng bằng nửa mặt phẳng [R37, ch. 11].
+- **Autopilot:** successive loop closure [R37, ch. 6] cộng yaw damper. Gain thiết kế ở 22/25/28 m/s; feed-forward trim nội suy theo vận tốc đo.
+
+**Planner** (`flight/planner_decide`), MPC cuốn chiếu trên tập rời rạc:
+- **Khi nào quyết định:** mỗi 3 s và đầu mỗi nhiệm vụ. Chạy lại planner định kỳ là cách chuẩn để bù sai số mô hình [R37, ch. 12].
+- **Ứng viên:** 36 quỹ đạo (φ̄, γ̄, V_a) × 3 mức bù, với dự báo cho chân trời 10 s.
+- **Ràng buộc:**
+  - cận trên AFP (conformal) ≤ 1;
+  - SoC dự báo cuối chân trời ≥ 35%.
+- **Hàm chi phí:** J = λ·τ + (1 − λ)·(e + d), trong đó:
+  - τ = 1 − tốc độ tiến độ / 25 m/s;
+  - e = H₂ tương đương, quy đổi năng lượng pin/siêu tụ theo hệ số s_eq phụ thuộc SoC, dạng ECMS [R30]; s0 = 2.5 và k = 3 là GT;
+  - d = suy giảm pin [R18] cộng biến thiên công suất FC [R16][R17], chuẩn hóa theo trung vị.
+
+**Điều kiện dừng chuyến bay:**
+- hết H₂;
+- SoC < 30% (dự trữ hạ cánh [R27]);
+- rơi (h < 5 m);
+- hoặc quá 4 h.
+
+**Nhãn vi phạm** của một cửa sổ hay một nhiệm vụ: m = max(lệnh lái / giới hạn góc, α_p99 / α_lim, thời gian bão hòa tốc độ lái liên tục / 0.2 s).
+- Vi phạm khi m > 1. Bão hòa tốc độ lái kéo dài quá 0.2 s là GT. α_lim = α0 − 2°.
+- **Nhiệm vụ đạt** = hoàn thành trước hạn và m của cả nhiệm vụ ≤ 1.
+
+**Bước tích phân** 0.01 s (RK4).
+- Kiểm tra ở gió lặng: so với 0.0025 s, H₂, SoC và thời gian nhiệm vụ lệch dưới 0.5%, và phân loại vi phạm giống nhau.
+- Ở gió có nhiễu, chuỗi nhiễu phụ thuộc bước tích phân, nên chỉ so được ở mức thống kê.
+
+## 5. Thí nghiệm
+
+| | E3X: thăm dò (huấn luyện) | E3: đánh giá |
 |---|---|---|
-| FC | 400/600/800 W; 224/458 W/kg; 1/2 h | nhẹ / nặng (xem mục 2) |
-| Pin, siêu tụ, Td, ramp | 1P/2P; 0/1/2; 1/10/20 s; 2/5 A/s | 1P; Maxwell; 10 s; 2 A/s |
-| m_remove, dx_cg | U[1.5, 3] kg; U[−8, 0] cm | 2.5 kg; {−6, −4, −2} cm |
-| α0, δ_max, tốc độ servo, trễ | U[12, 16]°; U[20, 30]°; U[100, 250]°/s; U[0.03, 0.08] s | 14°; 25°; 200°/s; 0.07 s |
-| Gió W_h, nhiễu | U[0, 12]; U[0.5, 3] | {0, 4, 8, 12}; {1, 2.5} |
-| Δχ, Δh | {45, 90, 135, 180}°; U[0, 60] m | {90, 180}°; {0, 50} m |
-| φ̄, γ̄, V_a | U[15, 50]°; U[1, 10]°; U[19, 30] m/s | {15, 25, 35, 45}°; {2, 5, 8}°; {22, 25, 28} m/s |
-| Seed | — | 3 (cùng gió/khí động cho mọi ứng viên) |
+| Số chuyến bay | 2000 × 10 phút | 144 kịch bản × 17 chính sách + 192 (S1, S2) = 2640 |
+| Chính sách | ứng viên ngẫu nhiên, giữ 10 s | xem mục 6 |
+| Cấu hình | nhẹ/nặng; CG U[−8, 0] cm; Td {1, 10, 20} s; 20% không siêu tụ; 15% thụ động | nhẹ/nặng × CG {−6, −2} cm |
+| Gió | W̄ U[0, 12] | W̄ {0, 4, 8, 12} |
+| Nhiên liệu, trạng thái đầu | SoC U[0.35, 0.95], siêu tụ U[0.3, 1] | mức nạp {25, 50, 100}%; SoC U[0.5, 0.9], siêu tụ U[0.3, 1] |
+| Seed | mỗi chuyến một seed | 3 (cùng nhiệm vụ, gió, khí động cho mọi chính sách) |
 
-## 6. Đánh giá và ablation
+**Huấn luyện** (`ai/e3_train_all`, chạy trên GitHub ở đầu stage eval):
+- **Dữ liệu:** mỗi cửa sổ 10 s của E3X là một mẫu, 33 đặc trưng (`flight/e3_features`).
+- **Chia dữ liệu:** theo chuyến bay, 60/20/20 cho huấn luyện / hiệu chuẩn / kiểm tra.
+- **AFP:** rừng hồi quy lượng tử τ = 0.9 cộng CQR một phía [R32], α = 0.1, hiệu chuẩn theo nhóm mức gió.
+- **Mô hình thay thế:** tiến độ, công suất đỉnh, H₂, công suất pin + siêu tụ, suy giảm.
+- **Learning curve** (`ai/e3_learning_curve`):
+  - Huấn luyện AFP trên 25 → 1200 chuyến bay theo thứ tự thu dữ liệu; tập hiệu chuẩn và tập kiểm tra cố định.
+  - Thêm 3 tập con ngẫu nhiên cho mỗi mốc. Mỗi mốc lưu một checkpoint mô hình.
+  - Vẽ pinball loss, độ phủ, recall, báo động giả và AUC; thêm lỗi OOB theo số cây.
 
-- **AFP:** rừng hồi quy lượng tử + CQR [R32]; độ phủ theo nhóm gió; cận số mẫu Tempo [R21].
-- **Checkpoint và learning curve (E1):**
-  - Mỗi job lưu checkpoint sau mỗi 50 kịch bản (`ckpt_<job>.mat`), tự chạy tiếp nếu bị ngắt, và checkpoint luôn được tải lên GitHub.
-  - `ai/learning_curve`: huấn luyện AFP trên lượng dữ liệu E1 tăng dần theo thứ tự sinh (250 → 6000 mẫu), giữ cố định tập hiệu chuẩn và tập test. Mỗi mốc lưu checkpoint mô hình.
-  - Vẽ pinball loss (train/test), độ phủ, recall/báo động giả, AUC; thêm 3 lần lấy mẫu ngẫu nhiên để có dải biến thiên, và lỗi OOB theo số cây.
-- **Quyết định:**
-  - J = λ·thời gian + (1 − λ)·(năng lượng + suy giảm [R16][R17][R18]), với λ ∈ {0.2, 0.5, 0.8}.
-  - So với oracle và các baseline.
-- **Ablation:**
+**Thước đo** (`ai/e3_analysis`):
+- **Chính:** số nhiệm vụ đạt trước khi cạn nhiên liệu.
+- **Phụ:**
+  - H₂ tương đương (đã hiệu chỉnh SoC) trên mỗi nhiệm vụ đạt;
+  - số nhiệm vụ vi phạm, thời gian vi phạm, tỉ lệ rơi;
+  - thời gian bay, SoC cuối, suy giảm FC (μV/cell) và pin (%).
+- **So sánh:** theo cặp với chính sách của ta trên cùng kịch bản, dùng kiểm định Wilcoxon.
 
-| Mã | Bỏ / đổi |
+## 6. Chính sách, ablation, độ nhạy
+
+| Mã | Mô tả |
 |---|---|
-| A1 | Không AFP |
-| A2 | Không conformal |
-| A3 | Không đặc trưng cấu hình |
-| A4 | Không đặc trưng gió |
-| A5 | Không siêu tụ |
-| A6 | Chỉ đổi quỹ đạo |
-| A7 | Chỉ bù năng lượng |
-| A8 | λ cố định |
-| A9 | Kiến trúc thụ động |
-| A10 | Conformal theo nhóm |
-| S1 | Td = 1 / 20 s (độ nhạy) |
-
-- **EMS so sánh:** rule [R27], lọc tần số [R3], ECMS [R30].
+| ours | AFP + conformal theo nhóm gió, chọn quỹ đạo + mức bù, λ theo nhiệm vụ |
+| A1 | Không ràng buộc AFP |
+| A2 | Lượng tử thô, không conformal |
+| A3 | Mô hình không có đặc trưng cấu hình (khối lượng, CG, …) |
+| A4 | Mô hình không có đặc trưng gió |
+| A5 | Không siêu tụ (phần cứng) |
+| A6 | Chỉ đổi quỹ đạo: FC theo tải, loại quỹ đạo cần pin gánh đỉnh công suất |
+| A7 | Chỉ bù năng lượng: giữ quỹ đạo danh nghĩa (35°, 5°, 25 m/s), chọn mức bù |
+| A8 | λ = 0.5 cho mọi nhiệm vụ |
+| A9 | Kiến trúc thụ động (phần cứng) |
+| A10 | Conformal toàn cục thay vì theo nhóm |
+| A11 | Mô hình không có trạng thái điện (SoC, siêu tụ, P_FC, U_bus) |
+| fixed_gentle / nominal / aggr | Quỹ đạo cố định (15°, 2°) / (35°, 5°) / (45°, 8°) ở 25 m/s, EMS [R3] |
+| nominal_rule / nominal_ecms | Quỹ đạo danh nghĩa, EMS luật [R27] / ECMS [R30] |
+| S1 | Td = 1 / 20 s (48 kịch bản) |
+| S2 | Chu kỳ planner 1 / 5 s (48 kịch bản) |
 
 ## 7. Hạ tầng
 
-- Repo public, workflow `grid.yml` chạy 20 job song song.
-- Phân tích: `ai/run_analysis(dirE1, dirE2)`.
+- Repo public; workflow `.github/workflows/e3.yml` chạy tối đa 20 job song song.
+  - `stage=explore`: 20 job E3X, gộp thành `E3X-all`.
+  - `stage=eval`, `explore_run=<run id>`:
+    - huấn luyện (`E3-models`, `E3X-report`);
+    - 60 job E3 (20 job một lúc);
+    - gộp và phân tích (`E3-all`).
+  - `stage=test`: 6 chuyến bay ngắn.
+- **Checkpoint:**
+  - `ckpt_<job>.mat` ghi sau mỗi chuyến bay;
+  - `fckpt_<job>.mat` ghi trạng thái chuyến đang bay mỗi 5 phút tính;
+  - cả hai luôn được tải lên. Khi chạy lại job lỗi, job tự lấy checkpoint của mình và chạy tiếp.

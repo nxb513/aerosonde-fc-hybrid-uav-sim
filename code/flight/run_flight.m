@@ -306,7 +306,7 @@ etaF = ps.E_fc_bus/max(ps.m_H2*LHV, eps);
 soc_end = 1 - ps.it/pp.bat.cell.Q; esc_end = (ps.v_sc/pp.sc.Vmax)^2;
 dE = (ps.soc0 - soc_end)*pp.bat.E_Wh*3600 + ...
      0.5*pp.sc.C*((sqrt(ps.esc0)*pp.sc.Vmax)^2 - ps.v_sc^2)*pp.sc.use;
-res.H2_eq_g = (ps.m_H2 + dE/(max(etaF, 0.2)*LHV))*1e3;      % hieu chinh duy tri dien tich (posthoc_power)
+res.H2_eq_g = (ps.m_H2 + dE/(max(etaF, 0.2)*LHV))*1e3;      % hieu chinh duy tri dien tich, dang ECMS [R30]
 res.H2_per_ok = res.H2_eq_g/max(res.n_ok, 1);
 res.soc_end = soc_end; res.esc_end = esc_end;
 res.bat_dmg = ps.bat_dmg;

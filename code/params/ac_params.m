@@ -13,10 +13,10 @@ function p = ac_params(opt)
 %     Mo hinh luc/momen [R37, Eq. 4.6-4.26]; dong co [R37, Eq. 4.17-4.22].
 %   Kiem tra hop ly (xem checks/flight_envelope.m) va cac GT:
 %     - alpha0 = 0.47 rad (27 deg) trong [R37] cho CL_max ~ 2.4, khong thuc te voi
-%       canh UAV nay -> dung alpha0 = 14 deg (GT, quet luoi 12-16 deg).
+%       canh UAV nay -> dung alpha0 = 14 deg (GT).
 %     - [R37] khong cho dong hoc/gioi han servo: GT servo bac 2 wn = 100 rad/s,
-%       zeta = 0.707, tre 0.07 s, toc do 200 deg/s, gioi han goc 25 deg; E1 quet
-%       tre 0.03-0.08 s, toc do 100-250 deg/s, goc 20-30 deg.
+%       zeta = 0.707, tre 0.07 s, toc do 200 deg/s, gioi han goc 25 deg (E3 dung gia
+%       tri danh dinh nay).
 %     - rho = 1.225 (ISA muc nuoc bien); [R37] dung 1.268.
 
 if nargin < 1, opt = struct(); end
