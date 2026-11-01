@@ -10,6 +10,12 @@ end
 if ~exist(outdir, 'dir'), mkdir(outdir); end
 S = grid_def(exp);
 idx = job:njobs:numel(S);
+if isempty(idx)
+    T = table(); traces = {}; %#ok<NASGU>
+    save(fullfile(outdir, sprintf('chunk_%02d.mat', job)), 'T', 'traces', 'idx', '-v7');
+    fprintf('Job %d khong co kich ban.\n', job);
+    return
+end
 keep_trace = ~strcmp(exp, 'E1');
 rows = cell(numel(idx), 1); traces = cell(numel(idx), 1);
 t0 = tic;
