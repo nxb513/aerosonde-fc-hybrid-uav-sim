@@ -25,6 +25,9 @@ function out = analysis_core(T1, T2, tr2, outdir)
 if ~exist(outdir, 'dir'), mkdir(outdir); end
 fprintf('E1: %d, E2: %d kich ban\n', height(T1), height(T2));
 
+%% 0. Duong hoc AFP theo luong du lieu E1 (checkpoint mo hinh trong outdir/learning)
+out.lc = learning_curve(T1, T2, fullfile(outdir, 'learning'));
+
 %% 1. AFP + conformal (va ablation A2, A3, A4, A10)
 out.afp = table();
 for alpha = [0.1 0.05]

@@ -33,6 +33,14 @@ jobs:
           name: ${{ inputs.exp }}-chunk-${{ matrix.job }}
           path: code/results/${{ inputs.exp }}/chunk_*.mat
           retention-days: 30
+      # Checkpoint luon duoc tai len (ke ca khi job loi/het gio) de khong mat du lieu
+      # va de ve learning curve theo luong du lieu tich luy.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.exp }}-ckpt-${{ matrix.job }}
+          path: code/results/${{ inputs.exp }}/ckpt_*.mat
+          retention-days: 30
 
   gather:
     needs: sim
@@ -43,6 +51,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: ${{ inputs.exp }}-chunk-*
+          path: code/results/${{ inputs.exp }}
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.exp }}-ckpt-*
           path: code/results/${{ inputs.exp }}
           merge-multiple: true
       - uses: matlab-actions/setup-matlab@v2
