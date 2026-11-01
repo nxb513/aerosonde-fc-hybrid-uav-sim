@@ -56,7 +56,8 @@ classdef FlightTest < matlab.unittest.TestCase
             B = TreeBagger(20, X, y, 'Method', 'regression', 'MinLeafSize', 5);
             P = rf_pack(B, X, y);
             Xq = rand(50, 5);
-            tc.verifyEqual(rf_predict(P, Xq), predict(B, Xq), 'AbsTol', 1e-12);
+            % Gia tri la luu dang single -> sai so lam tron ~1e-8, duong di trong cay giong het
+            tc.verifyEqual(rf_predict(P, Xq), predict(B, Xq), 'RelTol', 1e-6);
             q = qrf_predict(P, Xq, 0.9);
             tc.verifyGreaterThan(mean(q >= rf_predict(P, Xq)), 0.95);
         end
