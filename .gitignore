@@ -1,0 +1,10 @@
+# Chi dua code, du lieu bay cong khai (CC0) va workflow len GitHub.
+# Bai bao (ban quyen), ghi chu doc va tai lieu khung nghien cuu giu o may.
+/*
+!/code/
+!/data/
+!/.github/
+!/README.md
+!/.gitignore
+code/results/
+*.asv
