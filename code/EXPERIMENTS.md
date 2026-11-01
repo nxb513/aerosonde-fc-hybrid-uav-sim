@@ -1,10 +1,9 @@
-# Kế hoạch thí nghiệm — Aerosonde chuyển đổi sang FC hybrid (bản mới, thay toàn bộ bản X8)
+# Kế hoạch thí nghiệm — Aerosonde chuyển đổi sang FC hybrid
 
 **Nguyên tắc:**
 - Mọi lựa chọn khó hoặc chưa có số liệu đều được **quét lưới** và ghi rõ là giả thiết (GT).
 - Số liệu có nguồn ghi mã [Rxx].
 - Mọi dải tham số đều suy ra từ **đặc tính bay tính bằng chính mô hình** (`checks/flight_envelope.m`, kết quả trong `results/flight_envelope.md`).
-- Bản X8 trước đây đã **hủy**: X8 (3.4 kg) không chở nổi hệ FC.
 
 ## 1. Nền máy bay: Aerosonde [R37, App. E]
 
@@ -26,7 +25,7 @@
 | Các mode | short-period −4.7 ± 9.7i, phugoid −0.04 ± 0.50i, roll −21, dutch-roll −1.4 ± 5.8i, spiral +0.05 (hơi mất ổn định, đúng [R37]) | hợp lý |
 
 - **Hệ quả của dự trữ ổn định cao:** CG là biến thiết kế của bộ chuyển đổi. Dịch lùi 2–8 cm cho dự trữ ổn định 38–7% c̄.
-- **GT về servo:** [R37] không cho thông số servo. Dùng ωn = 100 rad/s, ζ = 0.707, trễ 0.07 s [R2] và tốc độ 200°/s [R7]; giới hạn góc 25°. Tất cả quét lưới trong E1.
+- **GT về servo:** [R37] không cho thông số servo. Danh định ωn = 100 rad/s, ζ = 0.707, trễ 0.07 s, tốc độ 200°/s, giới hạn góc 25°; E1 quét trễ 0.03–0.08 s, tốc độ 100–250°/s, góc 20–30°.
 - **GT về hệ số khí động:** bất định 10% (1σ), vì [R37] không cho độ lệch chuẩn.
 
 ## 2. Hệ nguồn
@@ -73,6 +72,10 @@
 ## 6. Đánh giá và ablation
 
 - **AFP:** rừng hồi quy lượng tử + CQR [R32]; độ phủ theo nhóm gió; cận số mẫu Tempo [R21].
+- **Checkpoint và learning curve (E1):**
+  - Mỗi job lưu checkpoint sau mỗi 50 kịch bản (`ckpt_<job>.mat`), tự chạy tiếp nếu bị ngắt, và checkpoint luôn được tải lên GitHub.
+  - `ai/learning_curve`: huấn luyện AFP trên lượng dữ liệu E1 tăng dần theo thứ tự sinh (250 → 6000 mẫu), giữ cố định tập hiệu chuẩn và tập test. Mỗi mốc lưu checkpoint mô hình.
+  - Vẽ pinball loss (train/test), độ phủ, recall/báo động giả, AUC; thêm 3 lần lấy mẫu ngẫu nhiên để có dải biến thiên, và lỗi OOB theo số cây.
 - **Quyết định:**
   - J = λ·thời gian + (1 − λ)·(năng lượng + suy giảm [R16][R17][R18]), với λ ∈ {0.2, 0.5, 0.8}.
   - So với oracle và các baseline.

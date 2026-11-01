@@ -1,6 +1,6 @@
 # Aerosonde FC-hybrid UAV — mô phỏng 6-DOF có giới hạn cơ cấu chấp hành (MATLAB)
 
-Nền máy bay là **Aerosonde** [R37, App. E], chuyển đổi từ động cơ xăng sang hệ nguồn lai **pin nhiên liệu – pin – siêu tụ**. Bản X8 trước đây đã bị hủy vì X8 (3.4 kg) không chở nổi hệ FC. Thiết kế thí nghiệm, nguồn tham số và các giả thiết (GT) nằm trong `EXPERIMENTS.md`.
+Nền máy bay là **Aerosonde** [R37, App. E], chuyển đổi từ động cơ xăng sang hệ nguồn lai **pin nhiên liệu – pin – siêu tụ**. Thiết kế thí nghiệm, nguồn tham số và các giả thiết (GT) nằm trong `EXPERIMENTS.md`.
 
 ## Chạy
 

@@ -6,7 +6,7 @@ function ap = autopilot_design(p, tr, des)
 %     a_V1 = -Xu, a_V2 = X_dt.
 %   Roll, course, altitude, airspeed theo [R37, Eq. 6.1-6.15]; yaw damper co bo loc
 %   washout p_wo = w_dr/10 va k_r cho zeta = 0.707 [R37, muc 6.1.1, Eq. 6.7].
-%   Sua doi cua ta (GT), de ben voi dich CG va tre servo 0.07 s:
+%   Sua doi cua ta (GT), de ben voi dich CG va tre servo:
 %     pitch: do cung phan hoi K_fb = max(wn_th^2 - a_th2, c_min*a_th2) > 0 (luon dung
 %            dau); gioi han do loi vong toc do |kd*a_th3| <= kq_max.
 %     roll:  kd_phi >= 0.

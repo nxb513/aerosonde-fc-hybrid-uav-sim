@@ -11,12 +11,12 @@ function p = ac_params(opt)
 %       he so khi dong, dong co AXI 5345/20 + canh quat APC 20x10E. Bo tham so nay
 %       goc tu AeroSim Blockset (Unmanned Dynamics) [R37 dan nguon].
 %     Mo hinh luc/momen [R37, Eq. 4.6-4.26]; dong co [R37, Eq. 4.17-4.22].
-%   Kiem tra hop ly (xem checks/param_sanity.m) va cac GT:
-%     - alpha0 = 0.47 rad (27 deg) trong [R37] cho CL_max ~ 2.6, khong thuc te voi
+%   Kiem tra hop ly (xem checks/flight_envelope.m) va cac GT:
+%     - alpha0 = 0.47 rad (27 deg) trong [R37] cho CL_max ~ 2.4, khong thuc te voi
 %       canh UAV nay -> dung alpha0 = 14 deg (GT, quet luoi 12-16 deg).
-%     - [R37] khong cho dong hoc/gioi han servo: lay servo bac 2 wn = 100 rad/s,
-%       zeta = 0.707, tre 0.07 s [R2, Bang 9] va toc do 200 deg/s [R7] (servo UAV nho);
-%       gioi han goc 25 deg (GT, quet luoi 20-30 deg).
+%     - [R37] khong cho dong hoc/gioi han servo: GT servo bac 2 wn = 100 rad/s,
+%       zeta = 0.707, tre 0.07 s, toc do 200 deg/s, gioi han goc 25 deg; E1 quet
+%       tre 0.03-0.08 s, toc do 100-250 deg/s, goc 20-30 deg.
 %     - rho = 1.225 (ISA muc nuoc bien); [R37] dung 1.268.
 
 if nargin < 1, opt = struct(); end
@@ -47,8 +47,7 @@ A.alpha0_R37 = A.alpha0;
 A.alpha0 = opt.alpha0_deg*d2r;          % GT (xem tren)
 A.Va_min = 1.0;
 p.aero = A;
-% Do bat dinh he so cho Monte Carlo: [R37] khong cho do lech chuan -> GT 10 %
-% (cung bac voi do lech tuong doi lon nhat trong bang he so nhan dang [R2, Bang 8]).
+% Do bat dinh he so cho Monte Carlo: [R37] khong cho do lech chuan -> GT 10 % (1 sigma).
 p.aero_rel_std = 0.10;
 p.alpha_lim = (opt.alpha0_deg - 2)*d2r; % bien an toan 2 deg truoc stall (GT)
 
@@ -64,7 +63,7 @@ p.prop = pr;
 p.act.wn = 100; p.act.zeta = 0.707; p.act.delay = opt.delay;
 p.act.max = opt.dmax_deg*d2r*[1; 1; 1];
 p.act.rate = opt.rate_deg*d2r*[1; 1; 1];
-p.act.thr_tau = 0.2; p.act.thr_delay = 0.05;     % ga [R2, Bang 9]
+p.act.thr_tau = 0.2; p.act.thr_delay = 0.05;     % ga (GT)
 
 p = ac_apply_config(p, struct('name', {}, 'm', {}, 'r', {}, 'J', {}));
 end

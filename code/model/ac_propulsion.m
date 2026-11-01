@@ -5,7 +5,7 @@ function out = ac_propulsion(Va, delta_t, Ub, p)
 %     a Om^2 + b Om + c = 0, a = rho D^5 CQ0/(2pi)^2,
 %     b = rho D^4 CQ1 Va/(2pi) + KQ KV/R, c = rho D^3 CQ2 Va^2 - KQ Vin/R + KQ i0
 %   Dien ap vao dong co: Vin = delta_t * Ub. [R37, Eq. 4.22] dung Vmax*delta_t; ta thay
-%   Vmax bang dien ap bus thuc te tu he nguon (mo rong cua ta, cung y [R2, Eq. 28]).
+%   Vmax bang dien ap bus thuc te tu he nguon (mo rong cua ta).
 %   Dong dong co I = (Vin - KV Om)/R [R37, Eq. 4.19]; cong suat P = Vin*I;
 %   dong bus Ibus = P/Ub (GT: ESC khong ton hao, khong hoi sinh).
 %   GT: Om < Om_min -> canh quat tu do, T = Q = 0; he so tien kep J <= J_max.
