@@ -10,11 +10,12 @@ function r = posthoc_power(P, dt, cfg, ems, soc0)
 %       [R16][R17]; bo qua start-stop trong mot doan.
 %     Mat dung luong pin (%) theo [R18] (bat_damage_rate).
 if nargin < 5, soc0 = 0.8; end
+P = double(P);
 pp = power_params(cfg);
 s = ps_init(pp, soc0, 0.5, P(1));
 Vmin = inf; Ibmax = 0;
 for k = 1:numel(P)
-    [s, o] = ps_step(pp, s, double(P(k)), dt, ems);
+    [s, o] = ps_step(pp, s, P(k), dt, ems);
     Vmin = min(Vmin, o.V_bus); Ibmax = max(Ibmax, o.I_bat);
 end
 LHV = 120e6;

@@ -5,7 +5,7 @@ function [R, choice] = decision_eval(T2, models, S, lambdas)
 %   Chi phi thuc te (sau mo phong):
 %     J = lambda*tau + (1 - lambda)*(e + d)  neu khong vi pham va hoan thanh
 %     J = 10                                 neu vi pham (m > 1) hoac khong hoan thanh
-%     tau = t_done/20 s, e = E_el/(300 W * 40 s), d = 0.5*(dmg_pin/trung vi + dP_FC/trung vi)
+%     tau = t_done/30 s, e = E_el/(450 W * 45 s), d = 0.5*(dmg_pin/trung vi + dP_FC/trung vi)
 %   Chinh sach chi dung thong tin truoc chuyen bay (dac trung afp_dataset):
 %     oracle       chon theo chi phi thuc te (can duoi)
 %     ours         surrogate J + rang buoc AFP conformal (can tren <= 1)
@@ -13,19 +13,19 @@ function [R, choice] = decision_eval(T2, models, S, lambdas)
 %     A2_no_conf   rang buoc bang luong tu tho (khong hieu chuan)
 %     A3_no_config / A4_no_wind  AFP thieu nhom dac trung
 %     A6_replan_only  chi xet ung vien co P_peak du bao <= P_fc (khong dua vao pin/sieu tu)
-%     A7_comp_only    giu quy dao danh nghia (phi 35, gamma 6, Va 22), de he nguon bu
+%     A7_comp_only    giu quy dao danh nghia (phi 35, gamma 5, Va 25), de he nguon bu
 %     A8_fixed_lambda chinh sach dung lambda = 0.5 bat ke lambda that
-%     always_gentle / always_aggr  quy dao co dinh (15/3/22) va (45/9/22)
+%     always_gentle / always_aggr  quy dao co dinh (15/2/25) va (45/8/25)
 if nargin < 4, lambdas = [0.2 0.5 0.8]; end
 D = afp_dataset(T2);
 ok = D.ok & T2.completed & ~D.viol;
 med_dmg = median(T2.bat_dmg(ok)); med_dp = median(T2.fc_dP(ok));
-tau = T2.t_done/20; e = T2.E_el/(300*40);
+tau = T2.t_done/30; e = T2.E_el/(450*45);
 d = 0.5*(T2.bat_dmg/med_dmg + T2.fc_dP/med_dp);
 
 % Du bao truoc chuyen bay
-pc = predict(S.complete, D.X); th = predict(S.t_done, D.X)/20;
-eh = predict(S.E_el, D.X)/(300*40); ph = predict(S.P_peak, D.X);
+pc = predict(S.complete, D.X); th = predict(S.t_done, D.X)/30;
+eh = predict(S.E_el, D.X)/(450*45); ph = predict(S.P_peak, D.X);
 dh = 0.5*(predict(S.bat_dmg, D.X)/med_dmg + predict(S.fc_dP, D.X)/med_dp);
 ub = struct();
 for v = {'full', 'A2_no_conf', 'A3_no_config', 'A4_no_wind'}
@@ -34,13 +34,14 @@ for v = {'full', 'A2_no_conf', 'A3_no_config', 'A4_no_wind'}
     if strcmp(m.mode, 'none'), ub.(v{1}) = q; else, ub.(v{1}) = cqr_bound(m.C, q); end
 end
 
-key = [T2.in_P_fc, T2.in_dx_cg, T2.in_W_h, T2.in_turb, T2.in_dchi, T2.in_dh, T2.in_aero_seed];
+key = [T2.in_P_fc, T2.in_fc_wkg, T2.in_endur_h, T2.in_dx_cg, T2.in_W_h, T2.in_turb, T2.in_dchi, T2.in_dh, T2.in_aero_seed];
 [~, ~, sit] = unique(key, 'rows');
 nsit = max(sit);
 pol = {'oracle','ours','A1_no_afp','A2_no_conf','A3_no_config','A4_no_wind', ...
        'A6_replan_only','A7_comp_only','A8_fixed_lambda','always_gentle','always_aggr'};
-fixed = @(ph_, g_, v_) T2.in_phi_max == ph_ & T2.in_gamma_max == g_ & T2.in_Va == v_;
-isnom = fixed(35, 6, 22); isgen = fixed(15, 3, 22); isagg = fixed(45, 9, 22);
+% Quy dao co dinh: ung vien gan nhat voi (phi, gamma, Va) cho truoc
+dist = @(ph_, g_, v_) abs(T2.in_phi_max - ph_)/30 + abs(T2.in_gamma_max - g_)/6 + abs(T2.in_Va - v_)/6;
+dnom = dist(35, 5, 25); dgen = dist(15, 2, 25); dagg = dist(45, 8, 25);
 R = table(); choice = struct();
 for L = lambdas
     Jr = L*tau + (1 - L)*(e + d); Jr(~ok) = 10;
@@ -56,10 +57,10 @@ for L = lambdas
         ch(s, 5) = pick(r, Jh(r), ub.A3_no_config(r) <= 1, ub.A3_no_config(r));
         ch(s, 6) = pick(r, Jh(r), ub.A4_no_wind(r) <= 1, ub.A4_no_wind(r));
         ch(s, 7) = pick(r, Jh(r), ub.full(r) <= 1 & ph(r) <= T2.in_P_fc(r), ph(r));
-        ch(s, 8) = r(find(isnom(r), 1));
+        [~, j] = min(dnom(r)); ch(s, 8) = r(j);
         ch(s, 9) = pick(r, Jh5(r), ub.full(r) <= 1, ub.full(r));
-        ch(s, 10) = r(find(isgen(r), 1));
-        ch(s, 11) = r(find(isagg(r), 1));
+        [~, j] = min(dgen(r)); ch(s, 10) = r(j);
+        [~, j] = min(dagg(r)); ch(s, 11) = r(j);
     end
     Jo = Jr(ch(:, 1));
     for k = 1:numel(pol)

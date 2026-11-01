@@ -1,115 +1,100 @@
-# Kế hoạch thí nghiệm (chốt 2026-11-01)
+# Kế hoạch thí nghiệm — Aerosonde chuyển đổi sang FC hybrid (bản mới, thay toàn bộ bản X8)
 
-Nguyên tắc: mọi lựa chọn khó hoặc chưa có số liệu đều được **quét lưới (grid)** thay vì chọn một giá trị, và được ghi rõ là giả thiết (GT). Số liệu có nguồn ghi mã [Rxx] theo `references_read.bib`.
+**Nguyên tắc:**
+- Mọi lựa chọn khó hoặc chưa có số liệu đều được **quét lưới** và ghi rõ là giả thiết (GT).
+- Số liệu có nguồn ghi mã [Rxx].
+- Mọi dải tham số đều suy ra từ **đặc tính bay tính bằng chính mô hình** (`checks/flight_envelope.m`, kết quả trong `results/flight_envelope.md`).
+- Bản X8 trước đây đã **hủy**: X8 (3.4 kg) không chở nổi hệ FC.
 
-## 1. Cấu hình phần cứng (chốt)
+## 1. Nền máy bay: Aerosonde [R37, App. E]
 
-**Kiến trúc nguồn:**
-- **Bán chủ động (semi-active)**, dùng làm kiến trúc chính [R3]: pin nối thẳng bus; FC và siêu tụ đi qua DC-DC có lệnh công suất.
-- **Thụ động (passive)**, dùng làm baseline [R5][R24]: FC, pin và siêu tụ nối song song, chia dòng theo điện áp.
+**Nguồn và độ tin cậy:**
+- Tham số lấy từ Beard & McLain [R37, Bảng E.1–E.2]. [R37] cho biết bộ tham số gốc từ AeroSim Blockset (Unmanned Dynamics); mô hình Aerosonde AeroSim cũng được Samar, Gorinevsky & Boyd (Stanford) dùng.
+- Aerosonde thật: sải 2.9 m, rỗng khoảng 8 kg, MTOW 13–14 kg, động cơ xăng khoảng 1 kW. Đây là nguồn bách khoa, chỉ dùng để kiểm tra kích cỡ.
 
-**Pin nhiên liệu:**
-- Đường phân cực AeroStack đo thực [R24, Eq. 1]: V = V0 − B·ln(I)·[lọc bậc 1] − R·I − m·e^{nI}.
-- Phần kích hoạt được lọc với τ = Td/3 [R19].
-- Định cỡ theo công suất P_fc ∈ {150, 200, 250} W:
-  - dòng được co giãn theo diện tích cell;
-  - khối lượng FC + bộ điều khiển theo mốc 224 W/kg (FLY-150: 150 W / 0.67 kg [R5]).
+**Kiểm tra hợp lý** (mô hình, bus 42.9 V, CG tham chiếu):
 
-**Bình H₂:**
-- Metal hydride 1.09 kg [R5].
-- Tiêu thụ H₂ = N·I/(2F), chia cho hiệu suất sử dụng nhiên liệu η_F = 0.9 khi P > 50 W [R24].
-
-**Động học FC (lưới):**
-- Td ∈ {1, 10, 20} s: EPAC-500 đo 1 s [R19]; FC UAV tự tạo ẩm 10–20 s [R24].
-- Giới hạn tốc độ tăng dòng ∈ {2, 5} A/s: [R25] ghi nhận FC cần > 5 s để lên 10 A.
-
-**Pin:**
-- Cell LiFePO₄ 3.3 V 2.3 Ah, mô hình Tremblay–Dessaint với tham số Bảng 1 của [R4].
-- Lão hóa theo [R18], cùng hóa học graphite–LiFePO₄.
-- Cấu hình 5S1P hoặc 5S2P.
-- Khối lượng pack theo mốc 65 Wh/kg, lấy từ pack 4S 1500 mAh 343 g [R5] (GT).
-
-**Siêu tụ:**
-- Yunasko 25 V, 7 F, 0.6 Wh, 279 g [R5], qua DC-DC.
-- Mô hình C–ESR, với ESR ∈ {10, 30} mΩ (GT). Đây là xấp xỉ của Zubieta [R20].
-- Giới hạn e_sc ≥ 25 % [R3].
-- Có hoặc không có siêu tụ (ablation).
-
-**DC-DC:** hiệu suất η_dc ∈ {0.93, 0.97} (GT).
-
-**Khối lượng và CG:**
-- Tổng khối lượng thêm vào tính từ các linh kiện trên.
-- Tháo pin gốc X8 ∈ {0, 0.5} kg (GT).
-- Dịch CG ròng Δx_cg ∈ {−3, −1.5, 0, +1.5, +3} cm, đặt linh kiện để đạt giá trị này.
-- Quán tính tính theo chất điểm [x8_apply_config].
-
-**Hệ đẩy:**
-- Hai bộ tham số động cơ [R2] / [R23] dùng làm bất định.
-- Hệ số khí động ~ N(μ, σ) theo [R2, Bảng 8].
-
-## 2. Gió ("mùa" = mức gió, không cần địa điểm)
-
-- **Gió trung bình** W20 ∈ {2, 6, 10, 14} m/s, tương ứng lặng / nhẹ / mạnh / rất mạnh.
-  - DS1 ghi nhận khoảng 9–10 m/s [R2].
-  - Hướng gió được lấy mẫu đều.
-- **Nhiễu Dryden tầng thấp** [R12]: σ_w = 0.1·u20, σ_u/σ_w = 1/(0.177 + 0.000823h)^0.4, L theo h.
-- **Hệ số cường độ nhiễu** ∈ {0.5, 1, 2} × (GT; MIL dùng xác suất vượt ngưỡng).
-- **Profil gió log** từ 20 ft lên độ cao bay [R12].
-- ERA5 cho một địa điểm cụ thể có thể cắm vào sau, thay lưới W20 bằng phân bố thật.
-
-## 3. Nhiệm vụ và quỹ đạo ứng viên
-
-- **Đoạn nhiệm vụ chuẩn (segment):** bay thẳng ở trim → quay Δχ ∈ {90°, 180°} và leo Δh ∈ {0, 30, 60} m → giữ. Mỗi đoạn dài 40 s.
-- **Ứng viên quỹ đạo k:** bank tối đa φ̄ ∈ {15°, 25°, 35°, 45°} × tốc độ leo γ̄ ∈ {3°, 6°, 9°} × V_a ∈ {17, 20, 23} m/s.
-  - Bank lớn, leo dốc = **"giữ quỹ đạo gắt + bù năng lượng"**.
-  - Bank nhỏ, leo thoải = **"đổi quỹ đạo"**: đường dài hơn, ít đỉnh công suất hơn.
-  - Quan hệ bán kính – bank theo [R37, Eq. 5.16]; Dubins [R37, ch. 11].
-- **Autopilot:** successive loop closure [R37, ch. 6], độ lợi tính từ mô hình tuyến tính tại trim của từng cấu hình (a_φ, a_θ, a_V). Có bão hòa φ_c ≤ φ̄, θ_c, ga [0, 1] và anti-windup.
-
-## 4. Các thí nghiệm
-
-**E1 — dữ liệu AFP (lấy mẫu ngẫu nhiên):**
-- Lấy mẫu trên các khoảng liên tục: khối lượng thêm [0, 2.5] kg, Δx_cg [−4, 4] cm, các ứng viên, gió, nhiễu, hệ số khí động, seed.
-- **Nhãn** = biên cơ cấu chấp hành m = max_t max(|δ|/30°, |δ̇|/200°/s), cùng α_max, cờ bão hòa, năng lượng và đỉnh công suất.
-- Khoảng 20 job × N mẫu.
-
-**E2 — lưới có cấu trúc (kiểm thử + quyết định):**
-- Cấu hình chốt × mức gió × nhiễu × nhiệm vụ × ứng viên × seed.
-- Mô phỏng 6-DOF có hệ nguồn trong vòng kín (EMS mặc định: lọc tần số).
-- Lưu chuỗi P_load(t) để đánh giá lại các EMS ngoài vòng: rule [R27], lọc tần số [R3], ECMS [R30], thụ động [R5].
-  - GT: tải công suất phụ thuộc yếu vào điện áp bus khi autopilot giữ V_a.
-
-**Đánh giá:**
-- **AFP:** hồi quy lượng tử bằng rừng ngẫu nhiên, hiệu chuẩn conformal (CQR) [R32].
-  - Hiệu chuẩn theo nhóm mức gió.
-  - Báo cáo độ phủ theo nhóm.
-  - Số mẫu theo cận Tempo [R21].
-- **Quyết định (ECP + planner receding-horizon trên tập ứng viên):**
-  - Chi phí J_k(λ) = w_t·thời gian + w_H₂·H₂ + w_fc·suy giảm FC [R16][R17] + w_bat·Q_loss [R18], với ràng buộc P(m > 1) ≤ δ.
-  - Oracle = argmin trên kết quả Monte Carlo.
-  - Chính sách AI = AFP + mô hình thay thế (surrogate) năng lượng, chọn k không cần mô phỏng.
-  - Nhiệm vụ nhiều đoạn nối tiếp, SoC mang sang đoạn sau, để thể hiện tính "liên tục".
-- **Baseline:** luôn gắt + bù; luôn thoải; EMS-only (rule / lọc / ECMS / thụ động); planner bỏ qua cơ cấu chấp hành.
-
-**Ablation (bắt buộc):**
-
-| Mã | Bỏ / đổi | Kiểm tra điều gì |
+| Đại lượng | Giá trị | Nhận xét |
 |---|---|---|
-| A1 | Không có AFP (chọn theo năng lượng) | Giá trị của dự báo vi phạm |
-| A2 | AFP không conformal (lượng tử thô) | Giá trị của bảo đảm xác suất |
-| A3 | AFP không có đặc trưng m, CG, J | Vai trò của cấu hình khối lượng/CG |
-| A4 | AFP không có đặc trưng gió | Vai trò của gió |
-| A5 | Không có siêu tụ | Vai trò của siêu tụ khi FC chậm |
-| A6 | Chỉ đổi quỹ đạo (không bù) | Giá trị của bù năng lượng |
-| A7 | Chỉ bù (không đổi quỹ đạo) | Giá trị của đổi quỹ đạo |
-| A8 | λ cố định / λ theo nhiệm vụ | Vai trò của tham số đánh đổi |
-| A9 | Kiến trúc thụ động | Vai trò của EMS chủ động |
-| A10 | Hiệu chuẩn conformal toàn cục / theo nhóm gió | Độ phủ theo nhóm |
-| S1 | Td = 1 / 10 / 20 s (độ nhạy) | Động học FC quyết định nhu cầu bù |
+| CL_max | 1.23 (α0 = 14°) | α0 = 27° của [R37] cho CL_max = 2.42, phi thực tế → GT: α0 ∈ [12, 16]° |
+| Vận tốc stall | 16.2 / 17.6 / 18.9 / 20.1 m/s ở 11 / 13 / 15 / 17 kg | — |
+| Vận tốc trim khả thi | 18–31 m/s (11 kg) … 22–30 m/s (17 kg) | — |
+| Công suất điện ở 25 m/s | 394–465 W | → định cỡ FC 400–800 W |
+| Góc leo tối đa ở 25 m/s | 6.5–11.4° | → lưới góc leo |
+| Bank quay vòng đều tối đa | 40–57° | → lưới bank |
+| Dự trữ ổn định ở CG tham chiếu | 0.49 c̄ | rất cao: elevator trim −10° đến −16° ở 25 m/s, tới −21° ở 20 m/s, 13 kg |
+| Các mode | short-period −4.7 ± 9.7i, phugoid −0.04 ± 0.50i, roll −21, dutch-roll −1.4 ± 5.8i, spiral +0.05 (hơi mất ổn định, đúng [R37]) | hợp lý |
 
-## 5. Hạ tầng chạy
+- **Hệ quả của dự trữ ổn định cao:** CG là biến thiết kế của bộ chuyển đổi. Dịch lùi 2–8 cm cho dự trữ ổn định 38–7% c̄.
+- **GT về servo:** [R37] không cho thông số servo. Dùng ωn = 100 rad/s, ζ = 0.707, trễ 0.07 s [R2] và tốc độ 200°/s [R7]; giới hạn góc 25°. Tất cả quét lưới trong E1.
+- **GT về hệ số khí động:** bất định 10% (1σ), vì [R37] không cho độ lệch chuẩn.
 
-- Repo GitHub public; workflow `grid.yml` chạy ma trận 20 job song song (max-parallel 20).
-- Mỗi job chạy một phần (chunk) của lưới, rồi upload artifact; job `gather` gộp kết quả.
-- Lưới lớn được chia thành nhiều lượt chạy.
-- Thời gian chạy: dt = 5 ms cho Monte Carlo (đã kiểm tra so với 2 ms trong test).
+## 2. Hệ nguồn
+
+- **Kiến trúc:** bán chủ động [R3] (chính); thụ động [R5][R24] (ablation).
+- **FC:** đường phân cực AeroStack [R24], co theo diện tích cell; τ = Td/3 [R19].
+  - P_fc ∈ {400, 600, 800} W.
+  - Công suất riêng {224 [R5], 458 [R3]} W/kg.
+  - Td ∈ {1, 10, 20} s; giới hạn tốc độ tăng dòng {2, 5} A/s (theo stack 200 W) [R25].
+- **Bình H₂:** composite 1.4% H₂ theo khối lượng [R26]; lượng H₂ cho {1, 2} h ở 60% P_fc với hiệu suất 45% (GT).
+- **Pin:** LiFePO₄ 13S (42.9 V, gần V_max 44.4 V của động cơ [R37]), 1P hoặc 2P [R4]; lão hóa theo [R18].
+- **Siêu tụ:** {không, Yunasko 7 F 25 V [R5], Maxwell 58 F 16 V [R3]}.
+- **Khối lượng:** tháo động cơ xăng + nhiên liệu m_remove ∈ [1.5, 3] kg (GT).
+  - Cấu hình E2 "nhẹ" (600 W @ 458 W/kg, 1 h): khoảng 13.7 kg.
+  - Cấu hình E2 "nặng" (600 W @ 224 W/kg, 2 h): khoảng 16.8 kg.
+
+## 3. Gió (không cần địa điểm; "mùa" = mức gió)
+
+- Gió trung bình W_h ∈ [0, 12] m/s, tức 0–50% vận tốc hành trình (MAV thường gặp gió 20–50% vận tốc [R37, mục 2.4]).
+- Nhiễu Dryden tầng thấp [R12] với hệ số cường độ ∈ [0.5, 3] (GT).
+- Độ cao bay 100 m.
+
+## 4. Nhiệm vụ và quỹ đạo ứng viên
+
+- **Đoạn nhiệm vụ:** bay thẳng ở trim → đổi hướng Δχ và leo Δh → giữ. Thời lượng 45 s.
+- **Ứng viên:** bank tối đa φ̄, góc leo tối đa γ̄, vận tốc V_a.
+  - Bank lớn + leo dốc = "giữ quỹ đạo gắt, để pin/siêu tụ bù".
+  - Bank nhỏ + leo thoải = "đổi quỹ đạo".
+- **Autopilot:** successive loop closure [R37, ch. 6] cùng yaw damper washout. Vòng pitch dùng thiết kế bền theo CG và trễ servo (GT).
+
+## 5. Lưới thí nghiệm
+
+| | E1 (ngẫu nhiên, 10 000) | E2 (có cấu trúc, 20 736) |
+|---|---|---|
+| FC | 400/600/800 W; 224/458 W/kg; 1/2 h | nhẹ / nặng (xem mục 2) |
+| Pin, siêu tụ, Td, ramp | 1P/2P; 0/1/2; 1/10/20 s; 2/5 A/s | 1P; Maxwell; 10 s; 2 A/s |
+| m_remove, dx_cg | U[1.5, 3] kg; U[−8, 0] cm | 2.5 kg; {−6, −4, −2} cm |
+| α0, δ_max, tốc độ servo, trễ | U[12, 16]°; U[20, 30]°; U[100, 250]°/s; U[0.03, 0.08] s | 14°; 25°; 200°/s; 0.07 s |
+| Gió W_h, nhiễu | U[0, 12]; U[0.5, 3] | {0, 4, 8, 12}; {1, 2.5} |
+| Δχ, Δh | {45, 90, 135, 180}°; U[0, 60] m | {90, 180}°; {0, 50} m |
+| φ̄, γ̄, V_a | U[15, 50]°; U[1, 10]°; U[19, 30] m/s | {15, 25, 35, 45}°; {2, 5, 8}°; {22, 25, 28} m/s |
+| Seed | — | 3 (cùng gió/khí động cho mọi ứng viên) |
+
+## 6. Đánh giá và ablation
+
+- **AFP:** rừng hồi quy lượng tử + CQR [R32]; độ phủ theo nhóm gió; cận số mẫu Tempo [R21].
+- **Quyết định:**
+  - J = λ·thời gian + (1 − λ)·(năng lượng + suy giảm [R16][R17][R18]), với λ ∈ {0.2, 0.5, 0.8}.
+  - So với oracle và các baseline.
+- **Ablation:**
+
+| Mã | Bỏ / đổi |
+|---|---|
+| A1 | Không AFP |
+| A2 | Không conformal |
+| A3 | Không đặc trưng cấu hình |
+| A4 | Không đặc trưng gió |
+| A5 | Không siêu tụ |
+| A6 | Chỉ đổi quỹ đạo |
+| A7 | Chỉ bù năng lượng |
+| A8 | λ cố định |
+| A9 | Kiến trúc thụ động |
+| A10 | Conformal theo nhóm |
+| S1 | Td = 1 / 20 s (độ nhạy) |
+
+- **EMS so sánh:** rule [R27], lọc tần số [R3], ECMS [R30].
+
+## 7. Hạ tầng
+
+- Repo public, workflow `grid.yml` chạy 20 job song song.
+- Phân tích: `ai/run_analysis(dirE1, dirE2)`.

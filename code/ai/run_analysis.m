@@ -1,16 +1,28 @@
 function out = run_analysis(dir1, dir2, outdir)
 %RUN_ANALYSIS Chuoi phan tich day du: AFP + conformal, quyet dinh, ablation, nguon.
 %   out = RUN_ANALYSIS(dir1, dir2, outdir)
-%     dir1, dir2  thu muc chua chunk_*.mat cua E1 va E2
+%     dir1, dir2  thu muc chua all_E1.mat / all_E2.mat (artifact da gop) hoac chunk_*.mat
 %   Ket qua: cac bang CSV + hinh + summary.md trong outdir.
 root = fileparts(fileparts(mfilename('fullpath')));
 if nargin < 1, dir1 = fullfile(root, 'results', 'E1'); end
 if nargin < 2, dir2 = fullfile(root, 'results', 'E2'); end
 if nargin < 3, outdir = fullfile(root, 'results', 'analysis'); end
+[T1, ~] = load_exp('E1', dir1);
+[T2, tr2] = load_exp('E2', dir2);
+out = analysis_core(T1, T2, tr2, outdir);
+end
+
+function [T, tr] = load_exp(exp, d)
+f = fullfile(d, sprintf('all_%s.mat', exp));
+if exist(f, 'file')
+    L = load(f); T = L.T; tr = L.traces;
+else
+    [T, tr] = gather_results(exp, d);
+end
+end
+
+function out = analysis_core(T1, T2, tr2, outdir)
 if ~exist(outdir, 'dir'), mkdir(outdir); end
-[T1, ~] = gather_results('E1', dir1);
-[T2, tr2] = gather_results('E2', dir2);
-T1 = T1(T1.ok | T1.msg ~= "", :);
 fprintf('E1: %d, E2: %d kich ban\n', height(T1), height(T2));
 
 %% 1. AFP + conformal (va ablation A2, A3, A4, A10)
