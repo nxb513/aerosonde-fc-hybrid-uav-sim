@@ -60,7 +60,7 @@ jobs:
 
   sim:
     needs: train
-    if: always() && (needs.train.result == 'success' || needs.train.result == 'skipped')
+    if: ${{ !cancelled() && (needs.train.result == 'success' || needs.train.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 350
     strategy:
@@ -106,7 +106,7 @@ jobs:
 
   gather:
     needs: sim
-    if: always() && needs.sim.result != 'skipped'
+    if: ${{ !cancelled() && needs.sim.result != 'skipped' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
