@@ -64,14 +64,22 @@ res.mass = p.mass.m; res.x_cg = p.mass.r_cg(1);
 res.SM = -p.aero.Cma/p.aero.CLa + p.mass.r_cg(1)/p.geom.c;
 C = e3_candidates();
 ps = ps_init(pp, fl.soc0, fl.esc0, 400);
-aps = cell(1, 3); ff = zeros(3, 3); trs = cell(1, 3);
+aps = cell(1, 3); ff = zeros(3, 3); trs = cell(1, 3); Va_ok = false(1, 3);
 for iv = 1:3
     tr = ac_trim(p, C.Va(iv), 0, struct('Ub', ps.V_bus));
-    if ~tr.converged || ~tr.ok_thr
-        res.msg = sprintf('trim_failed_%d', C.Va(iv)); return
+    Va_ok(iv) = tr.converged && tr.ok_thr;
+    if Va_ok(iv)
+        aps{iv} = autopilot_design(p, tr); ff(iv, :) = [tr.de tr.dt tr.theta]; trs{iv} = tr;
     end
-    aps{iv} = autopilot_design(p, tr); ff(iv, :) = [tr.de tr.dt tr.theta]; trs{iv} = tr;
 end
+if ~Va_ok(2)
+    res.msg = 'trim_failed_25'; return
+end
+% Van toc khong trim duoc (vd. 22 m/s voi cau hinh nang, lai can vuot gioi han): loai
+% khoi tap ung vien cua chuyen bay nay; gain/feed-forward lay theo 25 m/s.
+for iv = find(~Va_ok), aps{iv} = aps{2}; ff(iv, :) = ff(2, :); end
+res.Va22_ok = double(Va_ok(1)); res.Va28_ok = double(Va_ok(3));
+F.Va_ok = Va_ok;
 F.fl = fl; F.pol = pol; F.p = p; F.pp = pp; F.C = C; F.aps = aps; F.ff = ff;
 F.I = ac_state_index();
 F.ems = ['ems_' pol.ems];
@@ -270,6 +278,7 @@ ctx.u_recent = max(F.ring); ctx.P_el = F.Pel;
 ctx.soc = 1 - F.ps.it/pp.bat.cell.Q; ctx.esc = (F.ps.v_sc/pp.sc.Vmax)^2;
 ctx.P_fcbus = F.po.P_fc; ctx.V_bus = F.Ub;
 ctx.soc_ref = F.ps.soc0; ctx.E_bat_J = pp.bat.E_Wh*3600;
+ctx.Va_allowed = F.C.Va(F.Va_ok);
 ctx.P_fc_cap = pp.dc.eta*pp.fc.P_rated - pp.aux.P;
 end
 

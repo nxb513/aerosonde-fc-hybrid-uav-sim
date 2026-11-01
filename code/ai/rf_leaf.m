@@ -8,7 +8,7 @@ rowi = repmat((1:nr).', 1, numel(P.root));
 act = find(P.left(node) > 0);
 while ~isempty(act)
     nd = node(act);
-    xv = X(rowi(act) + (P.feat(nd) - 1)*nr);
+    xv = X(rowi(act) + (double(P.feat(nd)) - 1)*nr);
     nx = P.right(nd);
     gl = xv < P.cut(nd);
     nx(gl) = P.left(nd(gl));

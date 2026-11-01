@@ -15,7 +15,8 @@ function [it, fcv, info] = planner_decide(pol, M, ctx, C, lam, rs)
 info = struct('ub', NaN, 'J', NaN, 'nfeas', NaN);
 switch pol.kind
     case 'explore'
-        it = randi(rs, size(C.traj, 1));
+        allowed = find(ismember(C.traj(:, 3), ctx.Va_allowed));
+        it = allowed(randi(rs, numel(allowed)));
         fcv = C.fc(randi(rs, numel(C.fc)));
         if ctx.passive, fcv = NaN; end
         return
@@ -49,10 +50,10 @@ J = lam*tau + (1 - lam)*(e + dg);
 ubr = repmat(ub, nF, 1);
 feas = ctx.soc - eb*nm.H/ctx.E_bat_J >= nm.soc_floor;
 if ~strcmp(pol.conf, 'off'), feas = feas & ubr <= 1; end
-mask = true(nT*nF, 1);
+mask = repmat(ismember(C.traj(:, 3), ctx.Va_allowed), nF, 1);   % bo van toc khong trim duoc
 switch pol.mode
     case 'replan'     % FC theo tai (f_c cao nhat), loai quy dao can pin cho dinh cong suat
-        mask = FC == max(fcs);
+        mask = mask & FC == max(fcs);
         feas = feas & repmat(ppk <= ctx.P_fc_cap, nF, 1);
     case 'comp'       % giu quy dao danh nghia, chi chon muc bu
         mask = repmat((1:nT).' == C.nominal, nF, 1);

@@ -20,9 +20,9 @@ for t = 1:T
     F{t} = f; Cu{t} = tr.CutPoint; Le{t} = l; Ri{t} = r; Va{t} = tr.NodeMean;
     root(t) = off + 1; off = off + nn;
 end
-P.feat = vertcat(F{:}); P.cut = vertcat(Cu{:});
-P.left = vertcat(Le{:}); P.right = vertcat(Ri{:});
-P.val = vertcat(Va{:}); P.root = root;
+P.feat = int32(vertcat(F{:})); P.cut = vertcat(Cu{:});
+P.left = int32(vertcat(Le{:})); P.right = int32(vertcat(Ri{:}));
+P.val = single(vertcat(Va{:})); P.root = root;
 if nargin >= 3
     node = rf_leaf(P, Xtr);
     [nd, o] = sort(node(:));
