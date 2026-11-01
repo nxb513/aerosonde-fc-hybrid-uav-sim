@@ -9,10 +9,11 @@ function pp = power_params(cfg)
 %     esr_sc   ESR sieu tu (Ohm): 0.010 | 0.030
 %     eta_dc   hieu suat DC-DC: 0.93 | 0.97
 %     arch     'semi' (ban chu dong [R3]) | 'passive' ([R5][R24])
+%     fc_wkg   cong suat rieng FC + bo dieu khien (W/kg): 224 (FLY-150 [R5]) | 458 (AeroStack 1 kW, 2182 g [R3])
 %
 %   Nguon so lieu (xem EXPERIMENTS.md muc 1):
 %     FC: duong phan cuc AeroStack 35 cell, 200 W [R24, Eq. 1]; tau = Td/3 [R19];
-%         khoi luong 224 W/kg (FLY-150 150 W, 0.67 kg [R5]); binh H2 1.09 kg [R5].
+%         khoi luong theo cfg.fc_wkg (224 W/kg [R5] hoac 458 W/kg [R3]); binh H2 1.09 kg [R5].
 %     Pin: cell LiFePO4 3.3 V 2.3 Ah, Tremblay [R4, Bang 1]; khoi luong pack theo
 %          65 Wh/kg (pack 4S 1500 mAh 343 g [R5]) -- GT.
 %     Sieu tu: Yunasko 25 V 7 F 279 g, xa <= 50 A xung [R5]; e_sc >= 0.25 [R3].
@@ -20,7 +21,7 @@ function pp = power_params(cfg)
 
 if nargin < 1, cfg = struct(); end
 def = struct('P_fc', 200, 'Td', 10, 'ramp', 2, 'Np', 1, 'use_sc', true, ...
-    'esr_sc', 0.010, 'eta_dc', 0.95, 'arch', 'semi');
+    'esr_sc', 0.010, 'eta_dc', 0.95, 'arch', 'semi', 'fc_wkg', 224);
 f = fieldnames(def);
 for k = 1:numel(f)
     if ~isfield(cfg, f{k}), cfg.(f{k}) = def.(f{k}); end
@@ -43,7 +44,7 @@ fc.P_rated = cfg.P_fc;
 fc.tau   = cfg.Td/3;                    % [R19, Eq. 1]
 fc.ramp  = cfg.ramp*s;                  % A/s, co theo dien tich
 fc.eta_F_hi = 0.9; fc.eta_F_lo = 0.4; fc.P_eta_switch = 50*s;   % [R24]
-fc.mass  = cfg.P_fc/224;                % kg (GT tu [R5])
+fc.mass  = cfg.P_fc/cfg.fc_wkg;         % kg (luoi 224 [R5] / 458 [R3] W/kg)
 fc.mass_tank = 1.09;                    % kg [R5]
 % Suy giam (mo cell) [R17, Bang 1], he so k = 1.72 [R16][R17]
 fc.deg = struct('load_uV', 0.4185, 'idle_uV_h', 8.662, 'high_uV_h', 10.00, ...

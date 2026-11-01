@@ -6,10 +6,18 @@ function ap = autopilot_design(p, tr, des)
 %     a_th1 = -dq/dq, a_th2 = -Va*dq/dw, a_th3 = dq/d(delta_e) [R37, Eq. 5.27]
 %     a_V1 = -du/du, a_V2 = du/d(delta_t)                      [R37, Eq. 5.34]
 %   Do loi theo [R37, Eq. 6.1-6.15]; tan so/giam chan la tham so thiet ke (GT, des).
+%
+%   Vong pitch (sua doi cua ta, GT): cong thuc [R37, Eq. 6.9-6.10] voi wn_th co dinh
+%   cho do loi doi dau khi do cung tu nhien a_th2 > wn_th^2 (CG lech mui) va do loi
+%   phan hoi qua lon khi a_th2 nho (CG lech duoi) -> mat on dinh voi tre servo 0.07 s
+%   [R2, Bang 9]. Do do chon do cung phan hoi
+%     K_fb = kp_th*a_th3 = max(wn_th^2 - a_th2, c_min*a_th2) > 0  (luon dung dau, K_DC > 0)
+%   va gioi han do loi vong toc do goc |kd_th*a_th3| <= kq_max (bang thong < 1/(2*tre)).
 
 if nargin < 3, des = struct(); end
-d = struct('wn_phi', 10, 'z_phi', 0.9, 'W_chi', 8, 'z_chi', 1.0, ...
-           'wn_th', 12, 'z_th', 0.8, 'W_h', 15, 'z_h', 1.0, 'wn_V', 1.0, 'z_V', 1.0);
+d = struct('wn_phi', 8, 'z_phi', 0.9, 'W_chi', 8, 'z_chi', 1.0, ...
+           'wn_th', 8, 'z_th', 0.7, 'c_min', 0.15, 'kq_max', 5, ...
+           'W_h', 10, 'z_h', 1.0, 'wn_V', 1.0, 'z_V', 1.0);
 f = fieldnames(d);
 for k = 1:numel(f), if ~isfield(des, f{k}), des.(f{k}) = d.(f{k}); end, end
 
@@ -31,10 +39,13 @@ ap.kd_phi = (2*des.z_phi*des.wn_phi - a_phi1)/a_phi2;
 wn_chi = des.wn_phi/des.W_chi;
 ap.kp_chi = 2*des.z_chi*wn_chi*Va/g;
 ap.ki_chi = wn_chi^2*Va/g;
-ap.kp_th = (des.wn_th^2 - a_th2)/a_th3;
-ap.kd_th = (2*des.z_th*des.wn_th - a_th1)/a_th3;
-K_DC = ap.kp_th*a_th3/des.wn_th^2;
-wn_h = des.wn_th/des.W_h;
+K_fb = max(des.wn_th^2 - max(a_th2, 0), des.c_min*max(a_th2, 1));
+wn_cl = sqrt(max(a_th2, 0) + K_fb);
+ap.kp_th = K_fb/a_th3;
+kq = min(max(2*des.z_th*wn_cl - a_th1, 0), des.kq_max);
+ap.kd_th = kq/a_th3;
+K_DC = K_fb/wn_cl^2;
+wn_h = wn_cl/des.W_h;
 ap.ki_h = wn_h^2/(K_DC*Va);
 ap.kp_h = 2*des.z_h*wn_h/(K_DC*Va);
 ap.ki_V = des.wn_V^2/a_V2;
@@ -43,5 +54,5 @@ ap.kp_V = (2*des.z_V*des.wn_V - a_V1)/a_V2;
 ap.trim = struct('de', tr.de, 'da', tr.da, 'dt', tr.dt, 'theta', tr.theta, 'Va', Va);
 ap.theta_lim = [-15 25]*pi/180;     % GT
 ap.coef = struct('a_phi1', a_phi1, 'a_phi2', a_phi2, 'a_th1', a_th1, 'a_th2', a_th2, ...
-                 'a_th3', a_th3, 'a_V1', a_V1, 'a_V2', a_V2, 'K_DC', K_DC);
+                 'a_th3', a_th3, 'a_V1', a_V1, 'a_V2', a_V2, 'K_DC', K_DC, 'wn_th_cl', wn_cl);
 end

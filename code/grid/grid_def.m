@@ -15,21 +15,23 @@ switch exp
         S = repmat(scenario_default(), N, 1);
         for i = 1:N
             s = scenario_default();
-            s.P_fc = pick([250 350 450]); s.Np = pick([1 2]); s.use_sc = pick([false true]);
+            s.P_fc = pick([250 350 450]); s.fc_wkg = pick([224 458]);
+            s.Np = pick([1 2]); s.use_sc = pick([false true]);
             s.Td = pick([1 10 20]);
-            s.m_remove = u(0.5, 1.0); s.dx_cg = u(-0.04, 0.04);
+            s.m_remove = u(0.75, 1.25); s.dx_cg = u(-0.03, 0.03);
             s.aero_seed = i;
             s.W_h = u(0, 12); s.wind_dir = u(0, 360); s.turb = u(0.5, 2.5); s.wind_seed = i;
             s.dchi = pick([45 90 135 180]); s.dh = u(0, 60);
-            s.phi_max = u(15, 45); s.gamma_max = u(2, 10); s.Va = u(17, 25);
+            s.phi_max = u(15, 45); s.gamma_max = u(2, 10); s.Va = u(18, 26);
             s.id = i;
             S(i) = orderfields(s, S(1));
         end
     case 'E2'
-        cfgP = [250 450]; cfgX = [-0.025 0 0.025];
+        cfgP = [1 2]; cfgX = [-0.02 0 0.02];        % cau hinh 1: 250 W @ 224 W/kg (nang), 2: 350 W @ 458 W/kg (nhe)
+        cfgPW = [250 224; 350 458];
         Wh = [0 4 8 12]; turb = [1 2];
         dchi = [90 180]; dh = [0 40];
-        phi = [15 25 35 45]; gam = [3 6 9]; Va = [18 21 24];
+        phi = [15 25 35 45]; gam = [3 6 9]; Va = [19 22 25];
         seeds = 1:3;
         [a1,a2,a3,a4,a5,a6,a7,a8,a9,a10] = ndgrid(cfgP, cfgX, Wh, turb, dchi, dh, phi, gam, Va, seeds);
         N = numel(a1);
@@ -38,7 +40,7 @@ switch exp
         dirs = 360*rand(rs, 1000, 1);
         for i = 1:N
             s = scenario_default();
-            s.P_fc = a1(i); s.dx_cg = a2(i); s.m_remove = 1.0; s.Np = 1; s.use_sc = true; s.Td = 10;
+            s.P_fc = cfgPW(a1(i), 1); s.fc_wkg = cfgPW(a1(i), 2); s.dx_cg = a2(i); s.m_remove = 1.0; s.Np = 1; s.use_sc = true; s.Td = 10;
             s.W_h = a3(i); s.turb = a4(i); s.dchi = a5(i); s.dh = a6(i);
             s.phi_max = a7(i); s.gamma_max = a8(i); s.Va = a9(i);
             sd = a10(i);
