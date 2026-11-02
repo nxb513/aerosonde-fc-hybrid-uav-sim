@@ -51,6 +51,19 @@ classdef FlightTest < matlab.unittest.TestCase
             tc.verifyFalse(isfile(f));
         end
 
+        function onPolicyWindowPerDecision(tc)
+            % Chinh sach 'model': moi quyet dinh mot cua so H giay tren quy dao chinh sach
+            M = tiny_models();
+            r = run_flight(struct('policy', 'ours', 'T_max', 40, 'W_lvl', 4, 'id', 5), M);
+            OP = double(r.trace.onpolicy); DL = double(r.trace.decisions);
+            tc.verifyEqual(size(OP, 1), r.n_dec);
+            tc.verifyEqual(OP(:, 6), DL(:, 6), 'AbsTol', 1e-6);          % cung can tren ub
+            full = OP(:, 13) >= 10 - 1e-6;
+            tc.verifyTrue(all(OP(full, 1) <= 30 + 1e-6));                % cua so du 10 s bat dau truoc 30 s
+            tc.verifyTrue(all(OP(~full, 1) > 30 - 1e-6));                % cua so bi cat khi dung
+            tc.verifyGreaterThanOrEqual(min(OP(:, 9)), 0);
+        end
+
         function packedForestMatchesTreeBagger(tc)
             rng(3); X = rand(600, 5); y = X(:, 1) + 0.1*randn(600, 1);
             B = TreeBagger(20, X, y, 'Method', 'regression', 'MinLeafSize', 5);
@@ -62,4 +75,21 @@ classdef FlightTest < matlab.unittest.TestCase
             tc.verifyGreaterThan(mean(q >= rf_predict(P, Xq)), 0.95);
         end
     end
+end
+
+function M = tiny_models()
+% Bo mo hinh nho tren du lieu ngau nhien, chi de chay planner trong test
+rng(1); n = 400;
+[~, names, G] = e3_features();
+cols = 1:numel(names); colsT = setdiff(cols, G.cand(4));
+X = rand(n, numel(names)); y = rand(n, 1);
+fit = @(c) TreeBagger(5, X(:, c), y, 'Method', 'regression', 'MinLeafSize', 20);
+afp = rf_pack(fit(colsT), X(:, colsT), y); afp.cols = colsT;
+regT = rf_pack(fit(colsT)); regT.cols = colsT;
+regA = rf_pack(fit(cols)); regA.cols = cols;
+C = cqr_calibrate(qrf_predict(afp, X(:, colsT), 0.9), y, 0.1, randi(4, n, 1));
+M.full = struct('tau', 0.9, 'afp', afp, 'C', C, 'prog', regT, 'ppk', regT, ...
+                'h2', regA, 'eb', regA, 'dg', regA);
+M.norm = struct('H', 10, 'V_ref', 25, 'LHV', 120e6, 's0', 2.5, 'k_soc', 3, ...
+                'soc_floor', 0.35, 'h2_ref', 1, 'med_bd', 1, 'med_fd', 1);
 end

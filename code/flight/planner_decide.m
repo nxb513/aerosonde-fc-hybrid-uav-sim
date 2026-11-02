@@ -12,7 +12,8 @@ function [it, fcv, info] = planner_decide(pol, M, ctx, C, lam, rs)
 %   Rang buoc: can tren AFP (conformal [R32]) <= 1; SoC du bao cuoi chan troi >= 0.35
 %   (du tru ha canh 30 % [R27] + 5 % bien, GT). Khong ung vien nao kha thi -> chon can
 %   tren AFP nho nhat.
-info = struct('ub', NaN, 'J', NaN, 'nfeas', NaN);
+%   info: ub (can tren cua ung vien chon), q (luong tu tho), grp (nhom gio), J, nfeas.
+info = struct('ub', NaN, 'J', NaN, 'nfeas', NaN, 'q', NaN, 'grp', NaN);
 switch pol.kind
     case 'explore'
         allowed = find(ismember(C.traj(:, 3), ctx.Va_allowed));
@@ -68,6 +69,7 @@ end
 it = mod(j - 1, nT) + 1;
 fcv = FC(j); if fcv == 0, fcv = NaN; end
 info.ub = ubr(j); info.J = J(j); info.nfeas = numel(find(mask & feas));
+info.q = q(it); info.grp = wind_bin(ctx.W);
 end
 
 function b = wind_bin(W)

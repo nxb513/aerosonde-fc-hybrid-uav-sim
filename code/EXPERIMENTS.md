@@ -127,6 +127,16 @@
   - thời gian bay, SoC cuối, suy giảm FC (μV/cell) và pin (%).
 - **So sánh:** theo cặp với chính sách của ta trên cùng kịch bản, dùng kiểm định Wilcoxon.
 
+**Kiểm tra AFP trên quỹ đạo của chính sách (E3P)** (`ai/e3_onpolicy`):
+- Sau mỗi quyết định, đo m thực tế trên **10 s** tiếp theo (đúng chân trời mà cận trên U dự đoán), trong khi planner vẫn quyết định lại mỗi 3 s.
+- So với U và lượng tử thô q của ứng viên đã chọn.
+- Báo cáo:
+  - độ phủ P(m ≤ U), toàn bộ và theo nhóm gió;
+  - tỉ lệ vi phạm khi U ≤ 1;
+  - ước lượng độ phủ nếu hiệu chuẩn lại bằng dữ liệu của chính sách (hiệu chuẩn trên seed 1–2, kiểm tra trên seed 3).
+- **Lưới E3P:** chạy lại đúng các chuyến E3 của ours, A1, A2, A10 (576 chuyến) có thêm log này. Log không làm đổi cách bay hay cách quyết định, nên các chuyến ours trong E3P phải ra đúng kết quả của E3.
+- Ghi log 3 s trong E3 (`trace.decisions`) chỉ để tham khảo, vì không cùng chân trời với U.
+
 ## 6. Chính sách, ablation, độ nhạy
 
 | Mã | Mô tả |
@@ -156,6 +166,7 @@
     - huấn luyện (`E3-models`, `E3X-report`);
     - 60 job E3 (20 job một lúc);
     - gộp và phân tích (`E3-all`).
+  - `stage=onpolicy`, `models_run=<run id của eval>`: 20 job E3P, dùng lại `E3-models` (không huấn luyện lại), gộp và phân tích (`E3P-all`).
   - `stage=test`: 6 chuyến bay ngắn.
 - **Checkpoint:**
   - `ckpt_<job>.mat` ghi sau mỗi chuyến bay;

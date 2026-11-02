@@ -1,6 +1,7 @@
-function R = e3_analysis(indir)
+function R = e3_analysis(indir, exp)
 %E3_ANALYSIS Phan tich thi nghiem danh gia E3 (so sanh chinh sach, ablation, do nhay).
-%   R = E3_ANALYSIS(indir); mac dinh indir = results/E3 (all_E3.mat tu gather_results).
+%   R = E3_ANALYSIS(indir, exp); mac dinh indir = results/<exp>, exp = 'E3'
+%   (all_<exp>.mat tu gather_results; 'E3P' = cac chuyen bay kiem tra tren quy dao).
 %   Moi chinh sach bay cung 144 kich ban (cung chuoi nhiem vu, gio, khoi dau): so sanh
 %   theo cap voi 'ours' bang kiem dinh hang co dau Wilcoxon (signrank) tren cac kich ban
 %   chung; S1/S2 chi co 48 kich ban (seed 1).
@@ -11,9 +12,10 @@ function R = e3_analysis(indir)
 %   Bao cao (indir/report): policy_summary.csv, paired_vs_ours.csv, by_wind.csv,
 %   by_config.csv, task_ok_by_type.csv, onpolicy_afp.csv, summary.md, policies.png.
 root = fileparts(fileparts(mfilename('fullpath')));
-if nargin < 1, indir = fullfile(root, 'results', 'E3'); end
+if nargin < 2, exp = 'E3'; end
+if nargin < 1 || isempty(indir), indir = fullfile(root, 'results', exp); end
 out = fullfile(indir, 'report'); if ~exist(out, 'dir'), mkdir(out); end
-S = load(fullfile(indir, 'all_E3.mat'));
+S = load(fullfile(indir, sprintf('all_%s.mat', exp)));
 T = S.T; tr = S.traces;
 T.crash = T.stop_reason == "crash";
 T.ok = T.ok == 1;
@@ -84,24 +86,9 @@ end
 R.task = struct2table([rows{:}]');
 writetable(R.task, fullfile(out, 'task_ok_by_type.csv'));
 
-% ---- AFP tren quy dao cua chinh sach (cua so T_plan, khong phai chan troi 10 s)
-rows = {};
-for pname = ["ours", "A2_no_conf", "A10_global_conf", "A3_no_config", "A4_no_wind", "A11_no_elec"]
-    sel = find(T.in_policy == pname);
-    DL = [];
-    for j = sel.'
-        if isstruct(tr{j}) && isfield(tr{j}, 'decisions'), DL = [DL; double(tr{j}.decisions)]; end %#ok<AGROW>
-    end
-    if isempty(DL), continue; end
-    ub = DL(:, 6); m = DL(:, 8);
-    rows{end+1} = struct('policy', pname, 'n_dec', numel(m), 'frac_ub_le1', mean(ub <= 1), ...
-        'viol_rate', mean(m > 1), 'viol_given_ub_le1', mean(m(ub <= 1) > 1), ...
-        'nfeas_med', median(DL(:, 10))); %#ok<AGROW>
-end
-if ~isempty(rows)
-    R.onpolicy = struct2table([rows{:}]');
-    writetable(R.onpolicy, fullfile(out, 'onpolicy_afp.csv'));
-end
+% ---- AFP tren quy dao cua chinh sach
+R.onpolicy = e3_onpolicy(T, tr);
+if ~isempty(R.onpolicy), writetable(R.onpolicy, fullfile(out, 'onpolicy_afp.csv')); end
 
 % ---- Hinh
 fig = figure('Visible', 'off', 'Position', [100 100 1100 420]);
@@ -127,6 +114,15 @@ for i = 1:height(P)
     fprintf(fid, '| %s | %s | %d | %.3f | %.2g | %.2f |\n', P.policy(i), P.metric(i), P.n_pairs(i), ...
         P.mean_diff(i), P.p_signrank(i), P.ours_better(i));
 end
+if ~isempty(R.onpolicy)
+    O = R.onpolicy;
+    fprintf(fid, '\n## AFP tren quy dao cua chinh sach (cua so 10 s)\n\n| chinh sach | n | phu | phu g1 | phu g2 | phu g3 | phu g4 | vi pham | vi pham khi ub<=1 | phu sau hieu chuan lai (seed 3) | phu goc (seed 3) |\n|---|---|---|---|---|---|---|---|---|---|---|\n');
+    for i = 1:height(O)
+        fprintf(fid, '| %s | %d | %.3f | %.3f | %.3f | %.3f | %.3f | %.3f | %.3f | %.3f | %.3f |\n', O.policy(i), O.n(i), ...
+            O.cov(i), O.cov_g1(i), O.cov_g2(i), O.cov_g3(i), O.cov_g4(i), O.viol(i), O.viol_ok(i), ...
+            O.cov_recal(i), O.cov_test_orig(i));
+    end
+end
 fclose(fid);
-fprintf('E3: phan tich xong, bao cao trong %s\n', out);
+fprintf('%s: phan tich xong, bao cao trong %s\n', exp, out);
 end

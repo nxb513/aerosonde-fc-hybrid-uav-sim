@@ -4,17 +4,23 @@ name: e3
 #   stage = explore: 2000 chuyen bay tham do (E3X), 20 job -> E3X-all
 #   stage = eval:    huan luyen mo hinh tu E3X-all cua run explore_run (+ learning curve),
 #                    roi 2640 chuyen bay danh gia (E3), 60 job chay 20 job mot luc -> E3-all
+#   stage = onpolicy: kiem tra AFP tren quy dao chinh sach (E3P, 576 chuyen bay, 20 job)
 #   stage = test:    6 chuyen bay ngan (E3T)
+#   models_run: dung lai bo mo hinh E3-models cua mot run eval da xong (bo qua huan luyen).
 # Chay lai job loi ("Re-run failed jobs"): job tai checkpoint cua chinh no va chay tiep.
 on:
   workflow_dispatch:
     inputs:
       stage:
-        description: "explore | eval | test"
+        description: "explore | eval | onpolicy | test"
         required: true
         default: "explore"
       explore_run:
-        description: "Run id cua stage explore (bat buoc khi stage = eval)"
+        description: "Run id cua stage explore (bat buoc khi stage = eval va khong co models_run)"
+        required: false
+        default: ""
+      models_run:
+        description: "Run id co artifact E3-models (bat buoc khi stage = onpolicy)"
         required: false
         default: ""
 
@@ -23,12 +29,12 @@ permissions:
   actions: read
 
 env:
-  EXP: ${{ inputs.stage == 'eval' && 'E3' || (inputs.stage == 'test' && 'E3T' || 'E3X') }}
+  EXP: ${{ inputs.stage == 'eval' && 'E3' || (inputs.stage == 'onpolicy' && 'E3P' || (inputs.stage == 'test' && 'E3T' || 'E3X')) }}
   NJOBS: ${{ inputs.stage == 'eval' && '60' || '20' }}
 
 jobs:
   train:
-    if: inputs.stage == 'eval'
+    if: inputs.stage == 'eval' && inputs.models_run == ''
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
@@ -71,10 +77,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        if: inputs.stage == 'eval'
+        if: inputs.stage == 'eval' && inputs.models_run == ''
         with:
           name: E3-models
           path: code/results/E3
+      - uses: actions/download-artifact@v4
+        if: inputs.models_run != ''
+        with:
+          name: E3-models
+          path: code/results/E3
+          run-id: ${{ inputs.models_run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Lay checkpoint cua lan chay truoc (neu co)
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -127,7 +140,7 @@ jobs:
           products: Statistics_and_Machine_Learning_Toolbox
       - uses: matlab-actions/run-command@v2
         with:
-          command: cd code; setup_paths; gather_results('${{ env.EXP }}'); if strcmp('${{ env.EXP }}', 'E3'), e3_analysis; end
+          command: cd code; setup_paths; gather_results('${{ env.EXP }}'); if any(strcmp('${{ env.EXP }}', {'E3', 'E3P'})), e3_analysis([], '${{ env.EXP }}'); end
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.EXP }}-all

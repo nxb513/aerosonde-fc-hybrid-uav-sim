@@ -3,6 +3,9 @@ function S = grid_def(exp)
 %   S = GRID_DEF('E3X')  2000 chuyen bay tham do 10 phut, ung vien ngau nhien giu 10 s
 %                        (du lieu huan luyen AFP + mo hinh thay the, learning curve)
 %   S = GRID_DEF('E3')   danh gia: 144 kich ban x 17 chinh sach + do nhay S1, S2
+%   S = GRID_DEF('E3P')  kiem tra AFP tren quy dao cua chinh sach: cac chuyen bay E3 cua
+%                        ours, A1, A2, A10 (cung id, cung kich ban) -> 576 chuyen bay, co
+%                        nhan 10 s sau moi quyet dinh (run_flight, trace.onpolicy)
 %   S = GRID_DEF('E3T')  6 chuyen bay ngan de thu
 %   Cau hinh "nhe": FC 600 W @ 458 W/kg [R3], binh 1 h (~13.7 kg);
 %   "nang": FC 600 W @ 224 W/kg [R5], binh 2 h (~16.8 kg). Dai tham so: checks/flight_envelope.
@@ -60,6 +63,9 @@ switch exp
                 S(end+1, 1) = orderfields(s, base(1)); %#ok<AGROW>
             end
         end
+    case 'E3P'
+        S = grid_def('E3');
+        S = S(ismember({S.policy}, {'ours', 'A1_no_afp', 'A2_no_conf', 'A10_global_conf'}));
     case 'E3T'
         pols = {'explore','fixed_gentle','fixed_nominal','fixed_aggr','nominal_rule','nominal_ecms'};
         S = repmat(flight_default(), numel(pols), 1);

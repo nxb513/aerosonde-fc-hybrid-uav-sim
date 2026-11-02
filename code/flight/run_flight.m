@@ -19,6 +19,9 @@ function [res, F] = run_flight(fl, M, opts)
 %     H2 (kg/s), cong suat pin + sieu tu ra bus (W), suy giam pin [R18] (%/s), bien thien
 %     cong suat FC [R16][R17] (W/s), cong suat dinh.
 %   Nhiem vu "dat" = hoan thanh truoc han va m cua ca nhiem vu <= 1.
+%   Kiem tra AFP tren quy dao cua chinh sach (chinh sach 'model'): sau moi quyet dinh mo
+%   mot cua so dai H giay va do m thuc te trong khi planner van quyet dinh lai moi T_plan;
+%   so voi can tren ub (va luong tu tho q) cua ung vien da chon -> res.trace.onpolicy.
 if nargin < 2, M = []; end
 if nargin < 3, opts = struct(); end
 if ~isfield(opts, 'ckpt_file'), opts.ckpt_file = ''; end
@@ -105,6 +108,11 @@ F.rs_run = 0; F.alpha = trs{2}.alpha; F.Pel = trs{2}.Pel;
 F.po = struct('P_fc', trs{2}.Pel, 'V_bus', F.ps.V_bus);
 F.stop = false; F.reason = '';
 F.TK = zeros(0, 17); F.WN = zeros(0, 47, 'single'); F.DL = zeros(0, 10, 'single');
+% Cua so tren quy dao cua chinh sach (chi chinh sach 'model'): sau moi quyet dinh mo mot
+% cua so dai H giay, do m thuc te trong luc planner van tiep tuc quyet dinh lai.
+F.track = strcmp(pol.kind, 'model');
+F.ow_meta = zeros(0, 8); F.ow_m = zeros(0, 1); F.ow_h = zeros(4500, 0); F.ow_rs = zeros(0, 1);
+F.ow_0 = zeros(0, 3); F.OP = zeros(0, 17, 'single');
 F.viol_time = 0; F.n_dec = 0; F.P_peak = 0; F.wall = 0;
 F.ok = true; res.ok = true;
 end
@@ -137,6 +145,13 @@ N = round(period/dt);
 wm = 0; wh = zeros(4500, 1); wrs = 0; wppk = 0;
 P0 = P_cum; H0 = ps.m_H2; Eb0 = ps.E_bat + ps.E_sc_bus; bd0 = ps.bat_dmg; fd0 = ps.fc_dP; t0 = t;
 crash = false; task_end = 0; ru = 0; gd = F.gd; al = F.alpha; Pel = F.Pel; po = F.po;
+track = F.track;
+if track
+    F.ow_meta(end+1, :) = [t, F.itask, tk.type, it, max(fcv, 0)*~isnan(fcv), info.ub, info.q, info.grp];
+    F.ow_m(end+1, 1) = 0; F.ow_h(:, end+1) = 0; F.ow_rs(end+1, 1) = 0;
+    F.ow_0(end+1, :) = [P0, H0, Eb0];
+end
+ow_m = F.ow_m; ow_h = F.ow_h; ow_rs = F.ow_rs; ow_t0 = F.ow_meta(:, 1);
 for k = 1:N
     q = x(I.q); R = quat_utils('dcm', q); eul = quat_utils('to_euler', q);
     vned = R*x(I.vel);
@@ -181,12 +196,18 @@ for k = 1:N
     Ppk_f = max(Ppk_f, Pel);
     ru = max(ru, us);
     if mod(k, 10) == 0, iring = mod(iring, 60) + 1; ring(iring) = ru; ru = 0; end
+    if track
+        ow_m = max(ow_m, us); ow_h(bi, :) = ow_h(bi, :) + 1; ow_rs = max(ow_rs, rs_run);
+    end
 
     x = x + dt/6*(k1 + 2*k2 + 2*k3 + k4);
     x(I.q) = x(I.q)/norm(x(I.q));
     x(I.dlt) = min(max(x(I.dlt), -amax), amax);
     x(I.ddlt) = min(max(x(I.ddlt), -arate), arate);
     t = t + dt;
+    if track && ~isempty(ow_t0) && t - ow_t0(1) >= fl.H - 1e-9
+        [F, ow_m, ow_h, ow_rs, ow_t0] = close_windows(F, 1, ow_m, ow_h, ow_rs, ow_t0, t, P_cum, ps, false);
+    end
     if any(~isfinite(x)) || -x(I.pos(3)) < 5
         crash = true; F.stop = true; F.reason = 'crash'; break
     end
@@ -200,6 +221,10 @@ F.x = x; F.bufS = bufS; F.bufT = bufT; F.ast = ast; F.ps = ps; F.w = w; F.Ub = U
 F.task = tk; F.ta = ta; F.h_c = hc; F.t = t; F.rs_run = rs_run; F.P_cum = P_cum;
 F.r_prev = r_prev; F.ring = ring; F.iring = iring; F.viol_time = viol_time; F.P_peak = Ppk_f;
 F.gd = gd; F.alpha = al; F.Pel = Pel; F.po = po;
+if track && F.stop && ~isempty(ow_t0)              % dung chuyen bay: dong moi cua so (bi cat)
+    [F, ow_m, ow_h, ow_rs] = close_windows(F, 1:numel(ow_t0), ow_m, ow_h, ow_rs, ow_t0, t, P_cum, ps, crash);
+end
+F.ow_m = ow_m; F.ow_h = ow_h; F.ow_rs = ow_rs;
 
 % ---- Nhan cua so
 dur = max(t - t0, dt);
@@ -219,6 +244,24 @@ if task_end > 0 || F.stop
     F = finish_task(F, task_end);
     F.need_task = ~F.stop;
 end
+end
+
+function [F, ow_m, ow_h, ow_rs, ow_t0] = close_windows(F, idx, ow_m, ow_h, ow_rs, ow_t0, t, P_cum, ps, crash)
+% Dong cac cua so tren quy dao chinh sach (chi so idx); ghi mot dong vao F.OP:
+% [t0 itask loai it f_c ub q nhom | m m_cmd m_alpha m_rate dur tien_do H2 P_pin+sc roi]
+d2r = pi/180; alim = F.p.alpha_lim/d2r;
+for j = idx(:).'
+    dur = max(t - ow_t0(j), F.fl.dt);
+    a99 = hist_p99(ow_h(:, j))/alim;
+    m = max([ow_m(j), a99, ow_rs(j)/0.2]);
+    if crash, m = 2; end
+    o = F.ow_0(j, :);
+    F.OP(end+1, :) = single([F.ow_meta(j, :), m, ow_m(j), a99, ow_rs(j)/0.2, dur, ...
+        (P_cum - o(1))/dur, (ps.m_H2 - o(2))/dur, (ps.E_bat + ps.E_sc_bus - o(3))/dur, crash]);
+end
+keep = true(numel(ow_t0), 1); keep(idx) = false;
+ow_m = ow_m(keep); ow_h = ow_h(:, keep); ow_rs = ow_rs(keep); ow_t0 = ow_t0(keep);
+F.ow_meta = F.ow_meta(keep, :); F.ow_0 = F.ow_0(keep, :);
 end
 
 %% ------------------------------------------------------------------------------------
@@ -318,6 +361,8 @@ res.P_peak = F.P_peak; res.bat_limit_t = ps.bat_limit;
 res.n_dec = F.n_dec; res.wall_s = F.wall;
 names_tk = {'itask','type','lambda','T_ref','deadline','t_used','done','aborted','ok', ...
             'm_task','viol_s','H2_g','Eb_kJ','rms_xtrack','W','turb','stopped'};
+names_op = {'t0','itask','type','it','f_c','ub','q','grp','m','m_cmd','m_alpha','m_rate', ...
+            'dur','prog','h2','eb','crash'};
 res.trace = struct('tasks', single(TK), 'task_names', {names_tk}, ...
-                   'windows', F.WN, 'decisions', F.DL);
+                   'windows', F.WN, 'decisions', F.DL, 'onpolicy', F.OP, 'onpolicy_names', {names_op});
 end
