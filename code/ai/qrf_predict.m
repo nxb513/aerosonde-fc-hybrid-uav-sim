@@ -1,9 +1,10 @@
 function q = qrf_predict(P, X, tau)
-%QRF_PREDICT Luong tu tau theo kieu rung hoi quy luong tu, tren rung dong goi (rf_pack).
-%   q = QRF_PREDICT(P, X, tau). Trong so cua mau huan luyen i:
-%   w_i(x) = (1/T) sum_t 1{i trong la_t(x)} / |la_t(x)|; q = luong tu co trong so cua y.
-%   Day la cach TreeBagger/quantilePredict uoc luong phan bo co dieu kien; ban nay
-%   vector hoa de du nhanh cho planner. Do phu cuoi cung do CQR dam bao [R32].
+%QRF_PREDICT Luong tu tau cua rung hoi quy luong tu [R39], tren rung dong goi (rf_pack).
+%   q = QRF_PREDICT(P, X, tau). Trong so cua mau huan luyen i [R39, Eq. 4-5]:
+%   w_i(x) = (1/T) sum_t 1{i trong la_t(x)} / |la_t(x)|;
+%   F(y|x) = sum_i w_i(x) 1{y_i <= y} [R39, Eq. 6]; q = inf{y : F(y|x) >= tau} [R39, Eq. 1].
+%   Ban nay vector hoa de du nhanh cho planner. QRF chi nhat quan tiem can [R39, Dinh ly 1];
+%   do phu voi mau huu han do CQR dam bao [R32].
 node = rf_leaf(P, X);
 [nr, T] = size(node);
 q = zeros(nr, 1);

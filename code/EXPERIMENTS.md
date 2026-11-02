@@ -112,12 +112,12 @@
 **Huấn luyện** (`ai/e3_train_all`, chạy trên GitHub ở đầu stage eval):
 - **Dữ liệu:** mỗi cửa sổ 10 s của E3X là một mẫu, 33 đặc trưng (`flight/e3_features`).
 - **Chia dữ liệu:** theo chuyến bay, 60/20/20 cho huấn luyện / hiệu chuẩn / kiểm tra.
-- **AFP:** rừng hồi quy lượng tử τ = 0.9 cộng CQR một phía [R32], α = 0.1, hiệu chuẩn theo nhóm mức gió.
+- **AFP:** rừng hồi quy lượng tử [R39] τ = 0.9 cộng CQR một phía [R32], α = 0.1, hiệu chuẩn theo nhóm mức gió.
 - **Mô hình thay thế:** tiến độ, công suất đỉnh, H₂, công suất pin + siêu tụ, suy giảm.
 - **Learning curve** (`ai/e3_learning_curve`):
   - Huấn luyện AFP trên 25 → 1200 chuyến bay theo thứ tự thu dữ liệu; tập hiệu chuẩn và tập kiểm tra cố định.
   - Thêm 3 tập con ngẫu nhiên cho mỗi mốc. Mỗi mốc lưu một checkpoint mô hình.
-  - Vẽ pinball loss, độ phủ, recall, báo động giả và AUC; thêm lỗi OOB theo số cây.
+  - Vẽ pinball loss [R39, Eq. 3], độ phủ, recall, báo động giả và AUC; thêm lỗi OOB theo số cây.
 
 **Thước đo** (`ai/e3_analysis`):
 - **Chính:** số nhiệm vụ đạt trước khi cạn nhiên liệu.

@@ -4,11 +4,12 @@ function [M, rep] = e3_train(D, opts)
 %   Chia du lieu theo chuyen bay (khong theo mau, tranh ro ri): 60 % huan luyen, 20 %
 %   hieu chuan conformal, 20 % kiem tra (e3_split).
 %   Moi bien the (full; A3 bo cau hinh; A4 bo gio; A11 bo trang thai dien) gom:
-%     afp   rung hoi quy luong tu tau = 0.9 cua m (qrf_predict) + CQR mot phia [R32],
+%     afp   rung hoi quy luong tu [R39] tau = 0.9 cua m (qrf_predict) + CQR mot phia [R32],
 %           hieu chuan toan cuc va theo nhom muc gio (cqr_calibrate)
 %     prog, ppk   toc do tien do, cong suat dinh (chi phu thuoc quy dao, khong f_c)
 %     h2, eb, dg  H2, cong suat pin + sieu tu, suy giam chuan hoa (phu thuoc ca f_c)
-%   Sieu tham so rung (GT): 60 cay, la toi thieu 20 mau, so dac trung moi lan chia = 1/3.
+%   Sieu tham so rung (GT): 60 cay, la toi thieu 20 mau, so dac trung moi lan chia = 1/3
+%   ([R39] dung 1000 cay, la > 10, mtry = p/3; ket qua it nhay voi mtry va co la).
 %   rep.test: do phu, pinball, recall/bao dong gia, AUC cua AFP va R^2 tren tap kiem tra.
 if nargin < 2, opts = struct(); end
 def = struct('ntrees', 60, 'leaf', 20, 'tau', 0.9, 'alpha', 0.1);

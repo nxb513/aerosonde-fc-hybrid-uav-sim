@@ -1,6 +1,7 @@
 function row = afp_metrics(q, y, C, grp, tau)
 %AFP_METRICS Chi so cua AFP tren mot tap: do phu cua can tren conformal (toan cuc, theo
-%   nhom), pinball cua luong tu tho, recall / bao dong gia khi canh bao "ub > 1", AUC.
+%   nhom), pinball cua luong tu tho [R39, Eq. 3], recall / bao dong gia khi canh bao
+%   "ub > 1", AUC.
 %   AUC = thong ke Mann-Whitney cua q giua mau vi pham (y > 1) va khong vi pham.
 ug = cqr_bound(C, q); un = cqr_bound(C, q, grp);
 v = y > 1;

@@ -1,7 +1,8 @@
 function P = rf_pack(B, Xtr, ytr)
 %RF_PACK Dong goi rung TreeBagger thanh mang de du bao nhanh (vector hoa).
 %   P = RF_PACK(B, Xtr, ytr). Neu co Xtr, ytr: luu them phan bo dap ung cua du lieu
-%   huan luyen trong tung la de tinh luong tu kieu rung hoi quy luong tu (qrf_predict).
+%   huan luyen trong tung la de tinh luong tu kieu rung hoi quy luong tu [R39] (qrf_predict):
+%   QRF giu moi quan sat trong la, khong chi gia tri trung binh [R39, muc 3].
 %   Ly do: quantilePredict cua TreeBagger mat ~1.7 s cho 36 dong (do tren may),
 %   qua cham cho planner chay moi 3 s; ban dong goi cho cung du bao trung binh voi
 %   predict (kiem tra trong FlightTest) va khong can Statistics Toolbox khi bay.

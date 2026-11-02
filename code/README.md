@@ -30,7 +30,7 @@ Chạy lưới trên GitHub:
 | `power/` | FC [R24][R19], pin [R4][R18], siêu tụ, DC-DC, EMS (lọc tần số [R3] có mức bù chọn được, luật [R27], ECMS [R30]), kiến trúc thụ động |
 | `wind/` | Dryden tầng thấp [R12], đổi cường độ giữa chuyến bay |
 | `flight/` | Chuỗi nhiệm vụ, bám đường [R37, ch. 10–11], chuyến bay vòng kín (`run_flight`), planner và chính sách |
-| `ai/` | Rừng cây đóng gói (dự báo nhanh, lượng tử), CQR [R32], huấn luyện, learning curve, phân tích E3 |
+| `ai/` | Rừng cây đóng gói (dự báo nhanh, rừng hồi quy lượng tử [R39]), CQR [R32], huấn luyện, learning curve, phân tích E3 |
 | `grid/` | Lưới E3X/E3/E3T, chia job có checkpoint, gộp kết quả |
 | `checks/` | Đặc tính bay để kiểm tra tham số và chọn dải ứng viên |
 | `tests/` | `AircraftTest` (tính hợp lý vật lý), `SystemTest` (nguồn, gió, cấu hình), `FlightTest` (nhiệm vụ, bám đường, dừng, checkpoint, rừng cây) |
