@@ -13,7 +13,8 @@ function [M, rep] = e3_train(D, opts)
 %     prog, h2, pb, pbat, u2, fcuv, bd   rung hoi quy (mo hinh thay the)
 %   Sieu tham so rung (GT): 60 cay, la toi thieu 20 mau, so dac trung moi lan chia = 1/3
 %   ([R39] dung 1000 cay, la > 10, mtry = p/3; ket qua it nhay voi mtry va co la).
-%   M.norm.med: trung vi |J_nl|, |J_tg|, |J_dk|, |J_rr| tren tap hieu chuan (chinh sach C5).
+%   M.norm.med: trung vi |J_nl|, |J_tg|, |J_dk|, |J_rr| tren tap huan luyen (chinh sach C5);
+%   trung vi J_rr chi lay tren cac cua so nhiem vu chua vi pham (o cac cua so khac J_rr = 0).
 %   rep.test: chi so tren tap kiem tra; rep.calib: do hieu chinh cua p_vp (bien the full).
 if nargin < 2, opts = struct(); end
 def = struct('ntrees', 60, 'leaf', 20, 'tau', 0.9, 'alpha', 0.1, 'deltas', [0.005 0.01 0.02], ...
@@ -81,8 +82,8 @@ end
 rep.test = struct2table([rows{:}]');
 rep.test = movevars(rep.test, {'variant', 'n_train'}, 'Before', 1);
 
-% Trung vi cac khoan cua J tren tap hieu chuan (chinh sach C5), dung bo mo hinh full
-mf = M.full; rc = ca & ok;
+% Trung vi cac khoan cua J tren tap huan luyen (chinh sach C5), dung bo mo hinh full
+mf = M.full; rc = tr & ok;
 Xc = D.X(rc, :);
 H = nm.H;
 [~, pv] = qrf_predict(mf.afp, Xc(:, mf.afp.cols), opts.tau, 1);
@@ -93,7 +94,9 @@ d = H*max(prog, 0);
 s_eq = nm.s0*(1 + nm.k_soc*(D.soc_ref(rc) - soc));
 Jt = [H*(h2 + s_eq.*pb/nm.LHV) - fht.*d, mdot.*(H - d/nm.V_ref), mdot*H.*u2, ...
       pv.*fht.*D.L_nv(rc).*~D.task_viol(rc)];
-nm.med = max(median(abs(Jt), 1), eps);
+med = median(abs(Jt), 1);
+med(4) = median(Jt(~D.task_viol(rc), 4));
+nm.med = max(med, eps);
 M.norm = nm;
 end
 

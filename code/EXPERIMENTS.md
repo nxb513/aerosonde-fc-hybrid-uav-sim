@@ -164,7 +164,7 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 | C1 | Bỏ J_rr, giữ R1 |
 | C2 | Bỏ R2; khi nới thì chọn cận trên R1 nhỏ nhất |
 | C3 / C4 | κ_t = 0 / κ_u = 0 |
-| C5 | Cùng 4 khoản, mỗi khoản chia trung vị trên dữ liệu huấn luyện, cộng trọng số bằng nhau |
+| C5 | Cùng 4 khoản, mỗi khoản chia trung vị trên dữ liệu huấn luyện, cộng trọng số bằng nhau; trung vị J_rr chỉ lấy trên cửa sổ nhiệm vụ chưa vi phạm (ở cửa sổ khác J_rr = 0) |
 | C6 | Bỏ R1, giữ J_rr |
 | ours_deg | Thêm chi phí suy giảm quy ra H₂ theo giá [R14] |
 | S1 … S6 (48 kịch bản) | Td 1/20 s; chu kỳ 1/4 s; κ_t 0.5/2; κ_u 0.5/2; δ 0.005/0.02; f_c 0.06/0.3 Hz |
