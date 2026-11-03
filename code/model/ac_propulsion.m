@@ -1,16 +1,19 @@
-function out = ac_propulsion(Va, delta_t, Ub, p)
+function out = ac_propulsion(Va, delta_t, Ub, p, Vcap)
 %AC_PROPULSION Dong co DC + canh quat o trang thai xac lap, noi bus DC.
-%   out = AC_PROPULSION(Va, delta_t, Ub, p)
+%   out = AC_PROPULSION(Va, delta_t, Ub, p, Vcap)
 %   [R37, Eq. 4.17-4.21]: toc do canh quat Omega la nghiem duong cua can bang momen
 %     a Om^2 + b Om + c = 0, a = rho D^5 CQ0/(2pi)^2,
 %     b = rho D^4 CQ1 Va/(2pi) + KQ KV/R, c = rho D^3 CQ2 Va^2 - KQ Vin/R + KQ i0
-%   Dien ap vao dong co: Vin = delta_t * Ub. [R37, Eq. 4.22] dung Vmax*delta_t; ta thay
-%   Vmax bang dien ap bus thuc te tu he nguon (mo rong cua ta).
+%   Dien ap vao dong co: Vin = min(delta_t * Ub, Vcap). [R37, Eq. 4.22] dung
+%   Vmax*delta_t; ta thay Vmax bang dien ap bus thuc te tu he nguon (mo rong cua ta) va
+%   giu gioi han cung Vin <= Vmax = 44.4 V [R37]. Vcap (tuy chon, <= Vmax): tran dien ap
+%   khi he nguon khong cap du cong suat (run_flight).
 %   Dong dong co I = (Vin - KV Om)/R [R37, Eq. 4.19]; cong suat P = Vin*I;
 %   dong bus Ibus = P/Ub (GT: ESC khong ton hao, khong hoi sinh).
 %   GT: Om < Om_min -> canh quat tu do, T = Q = 0; he so tien kep J <= J_max.
 pr = p.prop; rho = p.env.rho; D = pr.D;
-Vin = max(delta_t, 0)*Ub;
+if nargin < 5 || isempty(Vcap), Vcap = pr.Vmax; end
+Vin = min(max(delta_t, 0)*Ub, min(Vcap, pr.Vmax));
 a = rho*D^5*pr.CQ(1)/(2*pi)^2;
 b = rho*D^4*pr.CQ(2)*Va/(2*pi) + pr.KQ*pr.KV/pr.R;
 c = rho*D^3*pr.CQ(3)*Va^2 - pr.KQ*Vin/pr.R + pr.KQ*pr.i0;

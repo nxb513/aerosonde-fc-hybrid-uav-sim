@@ -14,7 +14,7 @@ def = struct('ntrees', 60, 'leaf', 20, 'tau', 0.9, 'alpha', 0.1, 'reps', 3, ...
 f = fieldnames(def);
 for k = 1:numel(f), if ~isfield(opts, f{k}), opts.(f{k}) = def.(f{k}); end, end
 ck = fullfile(outdir, 'ckpt'); if ~exist(ck, 'dir'), mkdir(ck); end
-cols = setdiff(1:size(D.X, 2), D.groups.cand(4));
+cols = 1:size(D.X, 2);
 ftr = sp.f_tr(:);
 sizes = unique([opts.sizes(opts.sizes < numel(ftr)), numel(ftr)]);
 rs = RandStream('mt19937ar', 'Seed', 5);

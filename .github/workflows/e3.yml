@@ -1,26 +1,26 @@
 name: e3
 
-# Thi nghiem E3 (bay vong kin den khi het H2 hoac SoC < 30 %), xem code/EXPERIMENTS.md.
+# Thi nghiem E3 (bay vong kin den khi het H2, SoC < 30 % hoac roi), xem code/EXPERIMENTS.md.
 #   stage = explore: 2000 chuyen bay tham do (E3X), 20 job -> E3X-all
-#   stage = eval:    huan luyen mo hinh tu E3X-all cua run explore_run (+ learning curve),
-#                    roi 2640 chuyen bay danh gia (E3), 60 job chay 20 job mot luc -> E3-all
-#   stage = onpolicy: kiem tra AFP tren quy dao chinh sach (E3P, 576 chuyen bay, 20 job)
-#   stage = test:    6 chuyen bay ngan (E3T)
-#   models_run: dung lai bo mo hinh E3-models cua mot run eval da xong (bo qua huan luyen).
+#   stage = train:   huan luyen bo mo hinh tu E3X-all cua run explore_run (+ learning curve)
+#                    -> E3-models, E3X-report. Dung o day de duyet ket qua AI.
+#   stage = eval:    3744 chuyen bay danh gia (E3) voi bo mo hinh E3-models cua run
+#                    models_run, 120 job chay toi da 20 job mot luc -> E3-all
+#   stage = test:    7 chuyen bay ngan (E3T) de kiem tra quy trinh
 # Chay lai job loi ("Re-run failed jobs"): job tai checkpoint cua chinh no va chay tiep.
 on:
   workflow_dispatch:
     inputs:
       stage:
-        description: "explore | eval | onpolicy | test"
+        description: "explore | train | eval | test"
         required: true
         default: "explore"
       explore_run:
-        description: "Run id cua stage explore (bat buoc khi stage = eval va khong co models_run)"
+        description: "Run id cua stage explore (bat buoc khi stage = train)"
         required: false
         default: ""
       models_run:
-        description: "Run id co artifact E3-models (bat buoc khi stage = onpolicy)"
+        description: "Run id cua stage train co artifact E3-models (bat buoc khi stage = eval)"
         required: false
         default: ""
 
@@ -29,12 +29,12 @@ permissions:
   actions: read
 
 env:
-  EXP: ${{ inputs.stage == 'eval' && 'E3' || (inputs.stage == 'onpolicy' && 'E3P' || (inputs.stage == 'test' && 'E3T' || 'E3X')) }}
-  NJOBS: ${{ inputs.stage == 'eval' && '60' || '20' }}
+  EXP: ${{ inputs.stage == 'eval' && 'E3' || (inputs.stage == 'test' && 'E3T' || 'E3X') }}
+  NJOBS: ${{ inputs.stage == 'eval' && '120' || (inputs.stage == 'test' && '7' || '20') }}
 
 jobs:
   train:
-    if: inputs.stage == 'eval' && inputs.models_run == ''
+    if: inputs.stage == 'train'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
@@ -65,24 +65,18 @@ jobs:
           retention-days: 90
 
   sim:
-    needs: train
-    if: ${{ !cancelled() && (needs.train.result == 'success' || needs.train.result == 'skipped') }}
+    if: inputs.stage != 'train'
     runs-on: ubuntu-latest
     timeout-minutes: 350
     strategy:
       fail-fast: false
       max-parallel: 20
       matrix:
-        job: ${{ fromJSON(inputs.stage == 'eval' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]' || '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]') }}
+        job: ${{ fromJSON(inputs.stage == 'eval' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]' || (inputs.stage == 'test' && '[1,2,3,4,5,6,7]' || '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]')) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        if: inputs.stage == 'eval' && inputs.models_run == ''
-        with:
-          name: E3-models
-          path: code/results/E3
-      - uses: actions/download-artifact@v4
-        if: inputs.models_run != ''
+        if: inputs.stage == 'eval'
         with:
           name: E3-models
           path: code/results/E3
@@ -140,7 +134,7 @@ jobs:
           products: Statistics_and_Machine_Learning_Toolbox
       - uses: matlab-actions/run-command@v2
         with:
-          command: cd code; setup_paths; gather_results('${{ env.EXP }}'); if any(strcmp('${{ env.EXP }}', {'E3', 'E3P'})), e3_analysis([], '${{ env.EXP }}'); end
+          command: cd code; setup_paths; gather_results('${{ env.EXP }}'); if strcmp('${{ env.EXP }}', 'E3'), e3_analysis([], 'E3'); end
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.EXP }}-all

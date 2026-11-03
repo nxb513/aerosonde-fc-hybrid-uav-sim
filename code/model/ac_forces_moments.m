@@ -1,8 +1,8 @@
-function [F, M, aux] = ac_forces_moments(v_b, q, om_b, dl, dt, Ub, w_ned, g_b, p)
+function [F, M, aux] = ac_forces_moments(v_b, q, om_b, dl, dt, Ub, w_ned, g_b, p, Vcap)
 %AC_FORCES_MOMENTS Tong luc/momen quanh CG thuc te, he than.
-%   [F, M, aux] = AC_FORCES_MOMENTS(v_b, q, om_b, dl, dt, Ub, w_ned, g_b, p)
+%   [F, M, aux] = AC_FORCES_MOMENTS(v_b, q, om_b, dl, dt, Ub, w_ned, g_b, p, Vcap)
 %     dl = [de; da; dr] goc lai thuc te; dt ga thuc te; Ub dien ap bus;
-%     w_ned gio deu (NED), g_b gust (he than).
+%     w_ned gio deu (NED), g_b gust (he than); Vcap tran dien ap dong co (ac_propulsion).
 %   Van toc khi tuong doi [R37, Eq. 2.6-2.7]; luc day doc truc x, momen canh
 %   quat -Q quanh x [R37, Eq. 4.26]. CG lech goc mot doan r_cg -> momen quanh CG
 %   moi: M_cg = M_O + (r_O - r_cg) x (F_aero + F_prop) (co hoc vat ran).
@@ -10,7 +10,8 @@ function [F, M, aux] = ac_forces_moments(v_b, q, om_b, dl, dt, Ub, w_ned, g_b, p
 R_nb = quat_utils('dcm', q);
 vr_b = v_b - R_nb.'*w_ned - g_b;
 Va = max(norm(vr_b), p.aero.Va_min);
-pr = ac_propulsion(Va, dt, Ub, p);
+if nargin < 10, Vcap = []; end
+pr = ac_propulsion(Va, dt, Ub, p, Vcap);
 ae = ac_aero(vr_b, om_b, dl, p);
 F_prop = [pr.T; 0; 0];
 M_prop = [-pr.Q; 0; 0];

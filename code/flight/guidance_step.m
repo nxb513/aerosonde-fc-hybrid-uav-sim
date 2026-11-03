@@ -7,7 +7,7 @@ function [g, tk] = guidance_step(tk, p, chi, h, Vg, psi)
 %     roll feed-forward phi_ff = dir atan(Vg^2/(rho g cos(chi - psi))) [R37, Eq. 10.18].
 %   Tham so truong vector (GT): chi_inf = 60 deg, k_path = 0.02 1/m, k_orbit = 2.
 %   Dau ra: chi_c, phi_ff, e_py (sai lech ngang), r (quang duong con lai tuong duong, m:
-%   max(duong con lai, |h_t - h|/sin 5 deg)), kappa (do cong chang hien tai), d_wp (khoang
+%   max(duong con lai, |h_t - h|/sin gam_nom), gam_nom = 6 deg), kappa (do cong chang hien tai), d_wp (khoang
 %   cach toi diem chuyen chang), turn_next (goc doi huong o chang ke), done.
 chi_inf = pi/3; k_path = 0.02; k_orbit = 2; grav = 9.81;
 nl = numel(tk.legs);
@@ -52,6 +52,6 @@ while true
     end
     break
 end
-g.r = max(path_rem, abs(tk.h_t - h)/sind(5));
+g.r = max(path_rem, abs(tk.h_t - h)/sin(tk.gam_nom));
 if tk.type == 3, g.done = abs(tk.h_t - h) < 3; end
 end

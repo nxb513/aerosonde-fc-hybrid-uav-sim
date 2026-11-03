@@ -22,8 +22,7 @@ if isempty(idx)
     return
 end
 M = [];
-if any(arrayfun(@(s) ~any(strcmp(s.policy, {'explore','fixed_gentle','fixed_nominal', ...
-        'fixed_aggr','nominal_rule','nominal_ecms'})), S(idx)))
+if any(arrayfun(@(s) strcmp(policy_def(s.policy).kind, 'model'), S(idx)))
     M = load(models_file);
 end
 rows = cell(numel(idx), 1); traces = cell(numel(idx), 1);
