@@ -43,7 +43,7 @@
   - Td = 10 s (danh định). S1 xét Td = 1 và 20 s.
 - **Bình H₂:** composite 1.4% H₂ theo khối lượng [R26]. Dung tích tính cho thời gian thiết kế ở 60% P_fc, hiệu suất 45% (GT).
   - **Mức nạp ban đầu** {25, 50, 100}% dung tích; khối lượng bình giữ nguyên.
-- **Pin:** LiFePO₄ 13S (42.9 V) [R4]; lão hóa [R18].
+- **Pin:** 13S (42.9 V), tham số cell Li-ion 3.3 V 2.3 Ah [R4, Bảng 1]. [R4] chỉ ghi "Li-ion"; coi là cell LiFePO₄ (GT, theo điện áp 3.3 V) để dùng mô hình lão hóa LiFePO₄ [R18].
 - **Siêu tụ:** Maxwell 58 F 16 V [R3], mô hình C–ESR. A7 bỏ siêu tụ.
 - **EMS lọc tần số** [R3], **tần số cắt cố định f_c = 0.1 Hz** (GT): FC nhận thành phần tần số thấp, siêu tụ nhận phần cao, pin bù phần còn lại. S6 xét f_c = 0.06 và 0.3 Hz.
   - Baseline EMS: lọc thích nghi theo SoC siêu tụ [R3], luật [R27], ECMS [R30].
@@ -134,8 +134,9 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 - **Chia dữ liệu:** theo chuyến bay, 60/20/20 cho huấn luyện / hiệu chuẩn / kiểm tra.
 - **AFP:** rừng hồi quy lượng tử [R39] τ = 0.9 cộng CQR một phía [R32], ε = 0.1, hiệu chuẩn theo nhóm mức gió; p_vp = P(m > 1) đọc từ cùng rừng.
 - **Rừng biên stall:** phân vị 0.99 của α_p99/α0 cộng CQR, δ = 0.01.
-- **Mô hình thay thế:** quãng đường tiến, H₂, công suất pin + siêu tụ, mức dùng cánh lái ū².
-- **Learning curve** (`ai/e3_learning_curve`): 25 → 1200 chuyến bay, 3 tập con ngẫu nhiên mỗi mốc, checkpoint mô hình ở mỗi mốc; pinball loss [R39, Eq. 3], độ phủ, recall, báo động giả, AUC; lỗi OOB theo số cây.
+- **Mô hình thay thế:** quãng đường tiến, H₂, công suất pin + siêu tụ, công suất pin (cho R3), mức dùng cánh lái ū²; thêm sụt áp FC và suy giảm pin cho ours_deg.
+- **Rừng:** 60 cây, lá tối thiểu 20, mtry = p/3 (GT; [R39] dùng 1000 cây).
+- **Learning curve** (`ai/e3_learning_curve`): 25, 50, 100, 200, 400, 800 chuyến và toàn bộ tập huấn luyện; mỗi mốc dưới toàn bộ có thêm 3 tập con ngẫu nhiên; checkpoint mô hình ở mỗi mốc; pinball loss [R39, Eq. 3], độ phủ, recall, báo động giả, AUC; lỗi OOB theo số cây.
 - **Báo cáo AI rồi dừng chờ duyệt** trước khi chạy E3.
 
 **Thước đo** (`ai/e3_analysis`):
@@ -145,7 +146,8 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
   - H₂ tương đương (đã hiệu chỉnh SoC) trên mỗi nhiệm vụ đạt;
   - thời gian mỗi nhiệm vụ, mức dùng cánh lái trung bình;
   - chi phí vận hành USD trên nhiệm vụ đạt (giá [R14], suy giảm FC [R16][R17], pin [R18]).
-- **Độ phủ thực tế trên quỹ đạo của chính sách:** sau mỗi quyết định, đo m và α_p99 trên 10 s tiếp theo, so với cận trên R1, R2 của kiểu bay đã chọn.
+- **Độ phủ thực tế trên quỹ đạo của chính sách:** sau mỗi quyết định, đo m và α_p99 trên 10 s tiếp theo, so với cận trên R1, R2 của kiểu bay đã chọn. Tính trên các cửa sổ đủ 10 s và không rơi; rơi báo cáo riêng.
+- **Mức nới:** tỉ lệ quyết định đạt cả R1–R4 / phải bỏ R1 / chọn an toàn nhất, và tỉ lệ vi phạm thực tế khi u₀.₉ ≤ 1. Bảo đảm R1 chỉ có ở quyết định mức đầu và là bảo đảm biên [R32].
 - **So sánh:** theo cặp với ours trên cùng kịch bản, kiểm định Wilcoxon.
 
 ## 6. Chính sách, ablation, độ nhạy
@@ -175,7 +177,7 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
   - `stage=explore`: 20 job E3X, gộp thành `E3X-all`.
   - Huấn luyện và báo cáo AI từ dữ liệu E3X, rồi **dừng chờ duyệt**.
   - Đánh giá E3 dùng lại bộ mô hình đã duyệt: 120 job (GitHub dừng job chạy quá 6 giờ), gộp và phân tích.
-  - `stage=test`: vài chuyến bay ngắn để kiểm tra quy trình.
+  - `stage=test`: 7 chuyến bay ngắn (E3T) để kiểm tra quy trình.
 - **Checkpoint:**
   - `ckpt_<job>.mat` ghi sau mỗi chuyến bay;
   - `fckpt_<job>.mat` ghi trạng thái chuyến đang bay mỗi 5 phút tính;
@@ -194,7 +196,7 @@ Các chi tiết dưới đây không đổi ý tưởng của bản chốt; chú
 | Thành phần (4) của m | Bão hòa khi lệnh ga (sau trễ) bằng 1 hoặc điện áp lệnh ≥ điện áp cấp được | Đúng định nghĩa "điện áp tối đa cấp được" |
 | Nạp pin vượt giới hạn hoặc pin đầy | Giảm FC (giảm dòng tự do); nếu FC đã ở dòng tối thiểu mà vẫn dư thì xả trên điện trở (GT), ghi thời gian và năng lượng | Để giới hạn nạp không bao giờ bị vượt |
 | Hiệu chỉnh R2 theo nhóm gió | Chỉ khi mọi nhóm có n_nhóm·δ ≥ 20 mẫu vượt kỳ vọng (GT); không thì hiệu chỉnh chung | PDF: "nếu quá ít thì hiệu chỉnh chung" |
-| Ngưỡng chạy không tải / tải cao của FC (chỉ dùng để đánh giá suy giảm) | 20% / 80% P_max theo [R10] | Thay giá trị GT 5% bằng giá trị có nguồn |
+| Ngưỡng chạy không tải / tải cao của FC (chỉ dùng để đánh giá suy giảm) | 20% / 80% P_max theo [R10] | Dùng giá trị có nguồn |
 | Hiệu chỉnh SoC và siêu tụ trong EMS | k_soc = 2, k_e = 0.5 (GT), tương ứng hằng số thời gian hồi phục khoảng 5 phút (SoC) và 25 s (siêu tụ) | Đặt theo ý nghĩa vật lý thay vì số tùy ý |
 | ECMS (baseline) | Đường cong FC giới hạn ở công suất định mức; siêu tụ tách tần số với cùng f_c = 0.1 Hz | Cùng giới hạn cứng và cùng cách dùng siêu tụ, chỉ khác cách chia FC/pin |
 | T_max = 4 h | Giới hạn kỹ thuật, dài hơn chuyến bay dài nhất có thể; báo cáo số lần chạm (kỳ vọng 0) | Chống chạy mãi nếu có lỗi |
