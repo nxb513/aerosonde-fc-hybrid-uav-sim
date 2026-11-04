@@ -69,6 +69,7 @@ classdef FlightTest < matlab.unittest.TestCase
             tc.verifyEqual(c('m'), max(mc, [], 2), 'AbsTol', 1e-5);
             tc.verifyTrue(all(ok));
             tc.verifyTrue(all(c('u2') >= 0 & c('u2') <= 1));
+            tc.verifyTrue(all(c('loff') >= 0 & c('loff') <= 40));   % m/s, khong vuot van toc dat
             Xp = W(:, 3:5);                                    % kieu bay lien tuc trong luoi
             tc.verifyTrue(all(Xp(:, 1) >= 10 & Xp(:, 1) <= 50 & Xp(:, 2) >= 2 & Xp(:, 2) <= 10));
         end
@@ -89,7 +90,7 @@ classdef FlightTest < matlab.unittest.TestCase
 
         function plannerConstraintsAndFallback(tc)
             % Mo hinh tong hop: m = phi/40 (R1 loai phi > 40), a = (30 - Va)/6 (R2 loai
-            % Va < 24), u2 = phi/50. Kieu bay chon phai dat R1, R2; min_risk chon u nho
+            % Va < 24), loff = phi/50. Kieu bay chon phai dat R1, R2; min_risk chon u nho
             % nhat; chi cho Va 22 -> khong dat R2 -> chon a nho nhat (muc 2).
             M = synth_models();
             C = e3_candidates();
@@ -153,7 +154,7 @@ for dl = [0.005 0.01 0.02]
     mdl.stall.(sprintf('d%04d', round(dl*1e4))) = struct('C', ...
         cqr_calibrate(qrf_predict(mdl.stall.P, X, 1 - dl), y, dl, grp), 'use_group', false, 'n_group', []);
 end
-for s = {'prog', 'h2', 'pb', 'pbat', 'u2', 'fcuv', 'bd'}, mdl.(s{1}) = fit(y, false); end
+for s = {'prog', 'h2', 'pb', 'pbat', 'loff', 'fcuv', 'bd'}, mdl.(s{1}) = fit(y, false); end
 M.full = mdl;
 M.norm = struct('H', 10, 'V_ref', 25, 'LHV', 120e6, 's0', 2.5, 'k_soc', 3, 'soc_floor', 0.35, ...
                 'c_H2', 6.9, 'med', [1 1 1 1]);
@@ -181,7 +182,7 @@ mdl.stall.P = P(a);
 mdl.stall.d0100 = struct('C', struct('alpha', 0.01, 'global', 0, 'by_group', [], 'groups', []), ...
                          'use_group', false, 'n_group', []);
 mdl.prog = R(X(:, 3)); mdl.h2 = R(1e-5*ones(n, 1)); mdl.pb = R(zeros(n, 1));
-mdl.pbat = R(zeros(n, 1)); mdl.u2 = R(X(:, 1)/50);
+mdl.pbat = R(zeros(n, 1)); mdl.loff = R(X(:, 1)/50);
 M.full = mdl;
 M.norm = struct('H', 10, 'V_ref', 25, 'LHV', 120e6, 's0', 2.5, 'k_soc', 3, 'soc_floor', 0.35, ...
                 'c_H2', 6.9, 'med', [1 1 1 1]);

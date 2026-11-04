@@ -4,7 +4,8 @@ function D = e3_dataset(traces)
 %   trace.window_names (run_flight): id, nhiem vu, 31 dac trung (e3_features), roi nhan:
 %     dur, m, m1..m5 (5 thanh phan cua m), a = alpha_p99/alpha0, prog (toc do tien, m/s),
 %     h2 (kg/s), pb (cong suat pin + sieu tu ra bus, W), pbat (chi pin, W), u2 (muc dung
-%     canh lai), bd (suy giam pin, %/s), fcuv (sut ap FC, uV/cell/s), crash,
+%     canh lai, chi de bao cao), loff (quang duong lech duong |e_py| > e_max, m/s),
+%     bd (suy giam pin, %/s), fcuv (sut ap FC, uV/cell/s), crash,
 %   va thong tin phu cho ham chi phi: mdot_ht (kg/s), soc_ref, L_nv (m), task_viol.
 %   Bo cua so ngan hon 2 s (bi cat boi ket thuc nhiem vu/chuyen bay).
 W = {}; names = {};
@@ -21,7 +22,7 @@ col = @(n) W(:, strcmp(names, n));
 [~, D.names, D.groups] = e3_features();
 D.flight = col('id'); D.task = col('itask');
 D.X = W(:, 3:2 + numel(D.names));
-lab = {'dur','m','m1','m2','m3','m4','m5','a','prog','h2','pb','pbat','u2','bd','fcuv', ...
+lab = {'dur','m','m1','m2','m3','m4','m5','a','prog','h2','pb','pbat','u2','loff','bd','fcuv', ...
        'crash','mdot_ht','soc_ref','L_nv','task_viol'};
 for j = 1:numel(lab), D.(lab{j}) = col(lab{j}); end
 D.crash = D.crash > 0; D.task_viol = D.task_viol > 0;

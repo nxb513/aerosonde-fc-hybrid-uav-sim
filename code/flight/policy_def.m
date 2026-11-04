@@ -8,7 +8,7 @@ function pol = policy_def(name)
 %     conf    hieu chinh conformal cua R1 va R2: 'group' (theo nhom gio) | 'global' | 'none'
 %     r1, r2  co ap rang buoc R1 (AFP) / R2 (bien stall) hay khong
 %     jrr     co khoan rui ro nhiem vu J_rr hay khong
-%     kt, ku  he so phat thoi gian / tin hieu dieu khien (mac dinh 1)
+%     kt, kb  he so phat thoi gian / bam quy dao (mac dinh 1)
 %     delta   muc rui ro cua R2 (mac dinh 0.01)
 %     obj     'J' (ham chi phi gam H2) | 'min_u' (chon can tren R1 nho nhat) | 'norm'
 %             (4 khoan chia trung vi, khong don vi)
@@ -19,7 +19,7 @@ function pol = policy_def(name)
 %   Bien the phan cung (A7 khong sieu tu) va do nhay S1 (Td), S2 (chu ky), S6 (f_c) dung
 %   chinh sach 'ours'; khac biet nam o kich ban (grid_def).
 pol = struct('name', name, 'kind', 'model', 'model', 'full', 'conf', 'group', ...
-             'r1', true, 'r2', true, 'jrr', true, 'kt', 1, 'ku', 1, 'delta', 0.01, ...
+             'r1', true, 'r2', true, 'jrr', true, 'kt', 1, 'kb', 1, 'delta', 0.01, ...
              'obj', 'J', 'deg', false, 'ems', 'filter', 'traj', [30 6 25]);
 switch name
     case 'explore',        pol.kind = 'explore';
@@ -40,14 +40,14 @@ switch name
     case 'C1_no_jrr',      pol.jrr = false;
     case 'C2_no_r2',       pol.r2 = false;
     case 'C3_no_time',     pol.kt = 0;
-    case 'C4_no_ctrl',     pol.ku = 0;
+    case 'C4_no_track',    pol.kb = 0;
     case 'C5_norm',        pol.obj = 'norm';
     case 'C6_no_r1',       pol.r1 = false;
     case 'ours_deg',       pol.deg = true;
     case 'S3_kt05',        pol.kt = 0.5;
     case 'S3_kt2',         pol.kt = 2;
-    case 'S4_ku05',        pol.ku = 0.5;
-    case 'S4_ku2',         pol.ku = 2;
+    case 'S4_kb05',        pol.kb = 0.5;
+    case 'S4_kb2',         pol.kb = 2;
     case 'S5_d005',        pol.delta = 0.005;
     case 'S5_d02',         pol.delta = 0.02;
     otherwise

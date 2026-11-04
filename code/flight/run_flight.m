@@ -21,6 +21,9 @@ function [res, F] = run_flight(fl, M, opts)
 %   Nhiem vu dat = bay xong voi m <= 1 (khong co han). Dung khi: het H2 (fill x dung
 %   tich), SoC < soc_stop (du tru ha canh 30 % [R27]), roi (h < 5 m hoac phan ky), hoac
 %   T_max (gioi han ky thuat). Khoi luong H2 tieu thu bo qua trong dong luc hoc (GT).
+%   Bam quy dao: quang duong bay (theo van toc dat) khi sai lech ngang |e_py| > e_max
+%   (GT 20 m) -> nhan loff cua cua so, ti le lech duong cua nhiem vu (off_frac) va cua
+%   chuyen bay (res.offtrack_frac).
 %   Do phu tren quy dao cua chinh sach ('model'): sau moi quyet dinh mo mot cua so H
 %   giay, do m va alpha_p99/alpha0 thuc te trong khi planner van quyet dinh lai moi
 %   T_plan; so voi can tren R1, R2 cua kieu bay da chon -> res.trace.onpolicy.
@@ -120,9 +123,9 @@ F.run = struct('rate', 0, 'mot', 0);
 F.alpha = trs{i25}.alpha; F.Pel = trs{i25}.Pel;
 F.po = struct('P_fc', trs{i25}.Pel, 'V_bus', F.ps.V_bus, 'P_motor_cap', inf);
 F.lim = struct('surf_angle', 0, 'surf_rate', 0, 'motor', 0);
-F.u2_int = 0;
+F.u2_int = 0; F.loff_tot = 0; F.dist_tot = 0;
 F.stop = false; F.reason = '';
-F.TK = zeros(0, 19); F.WN = zeros(0, 2 + numel(e3_feature_names()) + 20, 'single');
+F.TK = zeros(0, 20); F.WN = zeros(0, 2 + numel(e3_feature_names()) + 21, 'single');
 F.DL = zeros(0, 13, 'single');
 % Cua so tren quy dao cua chinh sach (chi chinh sach 'model')
 F.track = strcmp(pol.kind, 'model');
@@ -150,14 +153,14 @@ Xw = e3_features(ctx, traj);
 x = F.x; bufS = F.bufS; bufT = F.bufT; ast = F.ast; ps = F.ps; w = F.w; Ub = F.Ub;
 tk = F.task; ta = F.ta; hc = F.h_c; t = F.t; run = F.run; P_cum = F.P_cum;
 r_prev = F.r_prev; ring = F.ring; iring = F.iring; viol_time = F.viol_time; Ppk_f = F.P_peak;
-lim = F.lim; u2_int = F.u2_int; po = F.po;
+lim = F.lim; u2_int = F.u2_int; po = F.po; loff_tot = F.loff_tot; dist_tot = F.dist_tot;
 p = F.p; pp = F.pp; ems = F.ems; Vmax = p.prop.Vmax;
 amax = p.act.max; arate = p.act.rate; alim = p.alpha_lim; a0 = p.aero.alpha0;
 Idis = pp.bat.I_dis_max;
 ap = F.aps{F.iVa}; ffv = F.ff; Vg = F.C.Va;
 phi_max = traj(1)*d2r; climb = traj(3)*sin(traj(2)*d2r); Va_c = traj(3);
 N = round(period/dt);
-wm = zeros(1, 5); wh = zeros(4500, 1); u2w = 0;
+wm = zeros(1, 5); wh = zeros(4500, 1); u2w = 0; lo = 0;
 P0 = P_cum; H0 = ps.m_H2; Pb0 = ps.E_bat + ps.E_sc_bus; Pbat0 = ps.E_bat;
 bd0 = ps.bat_dmg; fd0 = [ps.fc_dP, ps.fc_idle_t, ps.fc_high_t]; t0 = t;
 crash = false; task_end = 0; ru = 0; gd = F.gd; al = F.alpha; Pel = F.Pel;
@@ -218,6 +221,9 @@ for k = 1:N
     wm = max(wm, mi); wh(bi) = wh(bi) + 1; u2w = u2w + u2*dt; u2_int = u2_int + u2*dt;
     ta.mx = max(ta.mx, mi); ta.hist(bi) = ta.hist(bi) + 1;
     ta.xt2 = ta.xt2 + gd.e_py^2; ta.n = ta.n + 1;
+    ds = norm(vned(1:2))*dt; doff = ds*(abs(gd.e_py) > fl.e_max);  % quang duong lech duong
+    lo = lo + doff; ta.loff = ta.loff + doff; ta.dist = ta.dist + ds;
+    loff_tot = loff_tot + doff; dist_tot = dist_tot + ds;
     if any(mi > 1) || al > alim
         viol_time = viol_time + dt; ta.viol = ta.viol + dt;
     end
@@ -255,6 +261,7 @@ F.x = x; F.bufS = bufS; F.bufT = bufT; F.ast = ast; F.ps = ps; F.w = w; F.Ub = U
 F.task = tk; F.ta = ta; F.h_c = hc; F.t = t; F.run = run; F.P_cum = P_cum;
 F.r_prev = r_prev; F.ring = ring; F.iring = iring; F.viol_time = viol_time; F.P_peak = Ppk_f;
 F.gd = gd; F.alpha = al; F.Pel = Pel; F.po = po; F.lim = lim; F.u2_int = u2_int;
+F.loff_tot = loff_tot; F.dist_tot = dist_tot;
 if track && F.stop && ~isempty(ow_t0)              % dung chuyen bay: dong moi cua so (bi cat)
     [F, owmx, owh] = close_windows(F, 1:numel(ow_t0), owmx, owh, ow_t0, t, crash);
 end
@@ -267,7 +274,7 @@ mc = wm; mc(2) = p99/(alim/d2r);
 mw = max(mc); if crash, mw = 2; end
 fcuv = fc_uV(pp, ps.fc_dP - fd0(1), ps.fc_idle_t - fd0(2), ps.fc_high_t - fd0(3));
 lab = [dur, mw, mc, p99/(a0/d2r), (P_cum - P0)/dur, (ps.m_H2 - H0)/dur, ...
-       (ps.E_bat + ps.E_sc_bus - Pb0)/dur, (ps.E_bat - Pbat0)/dur, u2w/dur, ...
+       (ps.E_bat + ps.E_sc_bus - Pb0)/dur, (ps.E_bat - Pbat0)/dur, u2w/dur, lo/dur, ...
        (ps.bat_dmg - bd0)/dur, fcuv/dur, crash, ...
        F.cruise.mdot, ps.soc0, tk.L, ta.violated];
 if strcmp(F.pol.kind, 'explore')
@@ -314,7 +321,8 @@ F.w = dryden_retune(F.w, sp.W, fl.h0, F.turb_now);
 [gd, tk] = guidance_step(tk, F.x(1:2), k.chi, k.h, k.Vg, k.eul(3));
 F.task = tk; F.gd = gd; F.r_prev = gd.r; F.t_task0 = F.t;
 F.ta = struct('mx', zeros(1, 5), 'hist', zeros(4500, 1), 'H0', F.ps.m_H2, ...
-              'Eb0', F.ps.E_bat + F.ps.E_sc_bus, 'xt2', 0, 'n', 0, 'viol', 0, 'violated', false);
+              'Eb0', F.ps.E_bat + F.ps.E_sc_bus, 'xt2', 0, 'n', 0, 'viol', 0, 'violated', false, ...
+              'loff', 0, 'dist', 0);
 F.need_task = false;
 end
 
@@ -334,7 +342,7 @@ ok = done && m_task <= 1;
 Wn = norm(F.Wt(1:2));
 F.TK(end+1, :) = [F.itask, tk.type, tk.T_dn, t_used, done, aborted, ok, m_task, mc, ...
                   ta.viol, (F.ps.m_H2 - ta.H0)*1e3, (F.ps.E_bat + F.ps.E_sc_bus - ta.Eb0)/1e3, ...
-                  sqrt(ta.xt2/max(ta.n, 1)), Wn, F.stop && ~done];
+                  sqrt(ta.xt2/max(ta.n, 1)), ta.loff/max(ta.dist, eps), Wn, F.stop && ~done];
 end
 
 function k = flight_kin(F)
@@ -451,6 +459,7 @@ res.usd_bat = 720*pp.bat.E_Wh/1e3*res.bat_dmg/20;
 res.usd = res.usd_h2 + res.usd_fc + res.usd_bat;
 res.usd_per_ok = res.usd/max(res.n_ok, 1);
 res.u2_mean = F.u2_int/max(F.t, eps);
+res.offtrack_frac = F.loff_tot/max(F.dist_tot, eps);
 res.fc_dP = ps.fc_dP; res.E_load_kJ = ps.E_load/1e3; res.P_mean = ps.E_load/max(F.t, eps);
 res.P_peak = F.P_peak;
 L = ps.lim;
@@ -462,9 +471,10 @@ res.E_short_kJ = ps.E_short/1e3; res.E_dump_kJ = ps.E_dump/1e3;
 res.n_dec = F.n_dec; res.n_lvl0 = F.n_level(1); res.n_lvl1 = F.n_level(2); res.n_lvl2 = F.n_level(3);
 res.wall_s = F.wall;
 names_tk = {'itask','type','T_dn','t_used','done','aborted','ok','m_task', ...
-            'm1','m2','m3','m4','m5','viol_s','H2_g','Eb_kJ','rms_xtrack','W','stopped'};
+            'm1','m2','m3','m4','m5','viol_s','H2_g','Eb_kJ','rms_xtrack','off_frac','W','stopped'};
 names_wn = [{'id','itask'}, e3_feature_names(), {'dur','m','m1','m2','m3','m4','m5','a', ...
-            'prog','h2','pb','pbat','u2','bd','fcuv','crash','mdot_ht','soc_ref','L_nv','task_viol'}];
+            'prog','h2','pb','pbat','u2','loff','bd','fcuv','crash','mdot_ht','soc_ref','L_nv', ...
+            'task_viol'}];
 names_dl = {'t0','itask','type','it','u','a','pvp','J','nfeas','level','m','dur','Va'};
 names_op = {'t0','itask','type','it','u','q','a','aq','pvp','grp','level', ...
             'm','m1','m2','m3','m4','m5','a_real','dur','crash'};

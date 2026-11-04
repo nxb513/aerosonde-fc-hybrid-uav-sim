@@ -96,12 +96,12 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 **Planner** (`flight/planner_decide`), MPC cuốn chiếu trên tập rời rạc:
 - **Khi nào quyết định:** mỗi 2 s và đầu mỗi nhiệm vụ; chân trời 10 s [R37, ch. 12].
 - **Kiểu bay:** lưới 315 = φ̄ {10, 15, …, 50}° × γ̄ {2, 4, 6, 8, 10}° × V_a {22, …, 28} m/s. Danh nghĩa (30°, 6°, 25 m/s).
-- **Hàm chi phí** (g H₂): J = J_nl + J_tg + J_đk + J_rr.
+- **Hàm chi phí** (g H₂): J = J_nl + J_tg + J_bq + J_rr.
   - J_nl = ΔM − f_ht·d; ΔM = H·(ṁ_H2 + s_eq·P_b/LHV), s_eq dạng ECMS [R30], s0 = 2.5, k = 3 (GT).
   - J_tg = κ_t·ṁ_ht·(H − d/V_ref).
-  - J_đk = κ_u·ṁ_ht·H·ū², ū² = mức dùng cánh lái (góc và tốc độ, chuẩn hóa theo giới hạn), dạng phạt bậc hai như [R11].
+  - J_bq = κ_b·f_ht·ℓ_lệch, ℓ_lệch = quãng đường (theo vận tốc so với đất) bay trong 10 s tới với sai lệch ngang |e_py| > e_max = 20 m (GT): H₂ đốt khi bay ngoài đường. Sai số dẫn đường ngang cũng có trong hàm mục tiêu NMPC của [R11, Eq. 19] (dạng bình phương).
   - J_rr = p_vp·f_ht·L_nv (H₂ để bay lại nhiệm vụ); bằng 0 nếu nhiệm vụ đã có vi phạm.
-  - ṁ_ht, f_ht: suất tiêu hao H₂ hành trình ở 25 m/s, tính trước chuyến bay theo cấu hình. κ_t = κ_u = 1 (GT).
+  - ṁ_ht, f_ht: suất tiêu hao H₂ hành trình ở 25 m/s, tính trước chuyến bay theo cấu hình. κ_t = κ_b = 1 (GT).
 - **Ràng buộc:**
   - R1: cận trên conformal của m (AFP, ε = 0.1) ≤ 1;
   - R2: cận trên conformal 99% của α_p99/α0 ≤ 1 (δ = 0.01);
@@ -135,7 +135,7 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 - **Chia dữ liệu:** theo chuyến bay, 60/20/20 cho huấn luyện / hiệu chuẩn / kiểm tra.
 - **AFP:** rừng hồi quy lượng tử [R39] τ = 0.9 cộng CQR một phía [R32], ε = 0.1, hiệu chuẩn theo nhóm mức gió; p_vp = P(m > 1) đọc từ cùng rừng.
 - **Rừng biên stall:** phân vị 0.99 của α_p99/α0 cộng CQR, δ = 0.01.
-- **Mô hình thay thế:** quãng đường tiến, H₂, công suất pin + siêu tụ, công suất pin (cho R3), mức dùng cánh lái ū²; thêm sụt áp FC và suy giảm pin cho ours_deg.
+- **Mô hình thay thế:** quãng đường tiến, H₂, công suất pin + siêu tụ, công suất pin (cho R3), quãng đường lệch đường ℓ_lệch; thêm sụt áp FC và suy giảm pin cho ours_deg.
 - **Rừng:** 60 cây, lá tối thiểu 20, mtry = p/3 (GT; [R39] dùng 1000 cây).
 - **Learning curve** (`ai/e3_learning_curve`): 25, 50, 100, 200, 400, 800 chuyến và toàn bộ tập huấn luyện; mỗi mốc dưới toàn bộ có thêm 3 tập con ngẫu nhiên; checkpoint mô hình ở mỗi mốc; pinball loss [R39, Eq. 3], độ phủ, recall, báo động giả, AUC; lỗi OOB theo số cây.
 - **Báo cáo AI rồi dừng chờ duyệt** trước khi chạy E3.
@@ -145,7 +145,7 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 - **Phụ:**
   - tỉ lệ rơi, số vi phạm, thời gian chạm từng giới hạn cứng;
   - H₂ tương đương (đã hiệu chỉnh SoC) trên mỗi nhiệm vụ đạt;
-  - thời gian mỗi nhiệm vụ, mức dùng cánh lái trung bình;
+  - thời gian mỗi nhiệm vụ, tỉ lệ quãng đường lệch đường (|e_py| > e_max), mức dùng cánh lái trung bình;
   - chi phí vận hành USD trên nhiệm vụ đạt (giá [R14], suy giảm FC [R16][R17], pin [R18]).
 - **Độ phủ thực tế trên quỹ đạo của chính sách:** sau mỗi quyết định, đo m và α_p99 trên 10 s tiếp theo, so với cận trên R1, R2 của kiểu bay đã chọn. Tính trên các cửa sổ đủ 10 s và không rơi; rơi báo cáo riêng.
 - **Mức nới:** tỉ lệ quyết định đạt cả R1–R4 / phải bỏ R1 / chọn an toàn nhất, và tỉ lệ vi phạm thực tế khi u₀.₉ ≤ 1. Bảo đảm R1 chỉ có ở quyết định mức đầu và là bảo đảm biên [R32].
@@ -166,11 +166,11 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 | A7 | Bỏ siêu tụ (phần cứng) |
 | C1 | Bỏ J_rr, giữ R1 |
 | C2 | Bỏ R2; khi nới thì chọn cận trên R1 nhỏ nhất |
-| C3 / C4 | κ_t = 0 / κ_u = 0 |
+| C3 / C4 | κ_t = 0 / κ_b = 0 (bỏ phạt thời gian / bỏ phạt bám quỹ đạo) |
 | C5 | Cùng 4 khoản, mỗi khoản chia trung vị trên dữ liệu huấn luyện, cộng trọng số bằng nhau; trung vị J_rr chỉ lấy trên cửa sổ nhiệm vụ chưa vi phạm (ở cửa sổ khác J_rr = 0) |
 | C6 | Bỏ R1, giữ J_rr |
 | ours_deg | Thêm chi phí suy giảm quy ra H₂ theo giá [R14] |
-| S1 … S6 (cùng 48 kịch bản) | Td 1/20 s; chu kỳ 1/4 s; κ_t 0.5/2; κ_u 0.5/2; δ 0.005/0.02; f_c 0.06/0.3 Hz |
+| S1 … S6 (cùng 48 kịch bản) | Td 1/20 s; chu kỳ 1/4 s; κ_t 0.5/2; κ_b 0.5/2; δ 0.005/0.02; f_c 0.06/0.3 Hz |
 
 ## 7. Hạ tầng
 

@@ -8,7 +8,8 @@ function R = e3_analysis(indir, exp)
 %     n_ok        so nhiem vu dat (bay xong, m <= 1) (chinh)
 %     crash, n_viol, viol_time, thoi gian cham tung gioi han cung (lim_*)
 %     H2_per_ok   H2 tuong duong (hieu chinh SoC, sieu tu cuoi chuyen [R30]) / nhiem vu dat (g)
-%     t_per_ok    thoi gian trung binh moi nhiem vu dat (s); u2_mean muc dung canh lai
+%     t_per_ok    thoi gian trung binh moi nhiem vu dat (s); offtrack_frac ti le quang duong
+%                 bay voi sai lech ngang > e_max; u2_mean muc dung canh lai
 %     usd_per_ok  chi phi van hanh USD / nhiem vu dat (gia [R14], suy giam [R16][R17][R18])
 %   Do phu thuc te tren quy dao cua chinh sach: cua so 10 s sau moi quyet dinh,
 %   P(m <= u) (R1) va P(alpha_p99/alpha0 <= a) (R2), toan bo va theo nhom gio.
@@ -23,7 +24,7 @@ T = S.T; tr = S.traces;
 T.crash = double(T.stop_reason == "crash");
 T.ok = T.ok == 1;
 lims = T.Properties.VariableNames(startsWith(T.Properties.VariableNames, 'lim_'));
-mets = [{'n_ok', 'crash', 'n_viol', 'viol_time', 'H2_per_ok', 't_per_ok', 'u2_mean', ...
+mets = [{'n_ok', 'crash', 'n_viol', 'viol_time', 'H2_per_ok', 't_per_ok', 'offtrack_frac', 'u2_mean', ...
          'usd_per_ok', 'usd', 't_flight', 'soc_end', 'fc_uV', 'bat_dmg', 'n_done'}, lims];
 better_high = {'n_ok', 'n_done'};
 pols = unique(T.in_policy, 'stable');
@@ -89,6 +90,7 @@ for i = 1:numel(pols)
     for k = 1:6
         q = TK(:, 2) == k;
         r.([names{k} '_ok']) = mean(TK(q, 7)); r.([names{k} '_viol']) = mean(TK(q, 8) > 1);
+        r.([names{k} '_off']) = mean(TK(q, 18));          % ti le quang duong lech duong
     end
     rows{end+1} = r; %#ok<AGROW>
 end
@@ -135,11 +137,11 @@ fid = fopen(fullfile(out, 'summary.md'), 'w');
 fprintf(fid, '# E3: so sanh chinh sach (bay den khi het H2, SoC < 30 %% hoac roi)\n\n');
 fprintf(fid, '%d chuyen bay; %d chinh sach/bien the.\n\n', height(T), numel(pols));
 fprintf(fid, ['| chinh sach | n | loi | roi | n_ok TB | n_ok TV | n_viol TB | H2/nv dat (g) | ' ...
-              't/nv dat (s) | u2 TB | USD/nv dat | dung tmax |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n']);
+              't/nv dat (s) | lech duong | USD/nv dat | dung tmax |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n']);
 for i = 1:height(s)
     fprintf(fid, '| %s | %d | %.3f | %.3f | %.2f | %.1f | %.2f | %.3f | %.0f | %.3f | %.4f | %.3f |\n', ...
         s.policy(i), s.n(i), s.fail(i), s.crash_mean(i), s.n_ok_mean(i), s.n_ok_med(i), ...
-        s.n_viol_mean(i), s.H2_per_ok_mean(i), s.t_per_ok_mean(i), s.u2_mean_mean(i), ...
+        s.n_viol_mean(i), s.H2_per_ok_mean(i), s.t_per_ok_mean(i), s.offtrack_frac_mean(i), ...
         s.usd_per_ok_mean(i), s.stop_tmax(i));
 end
 fprintf(fid, '\n## So sanh cap voi ours (n_ok, crash, H2_per_ok)\n\n| chinh sach | chi so | cap | TB(chinh sach - ours) | p Wilcoxon | ti le ours tot hon |\n|---|---|---|---|---|---|\n');

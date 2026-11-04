@@ -3,11 +3,12 @@ function [traj, it, info] = planner_decide(pol, M, ctx, C, rs)
 %   [traj, it, info] = PLANNER_DECIDE(pol, M, ctx, C, rs)
 %     traj  [phi_max gamma_max Va]; it chi so trong luoi C.traj (0 neu khong thuoc luoi)
 %   Chinh sach 'model', voi H = 10 s:
-%     J = J_nl + J_tg + J_dk + J_rr   (kg H2; bao cao bang gam)
+%     J = J_nl + J_tg + J_bq + J_rr   (kg H2; bao cao bang gam)
 %       J_nl = Delta M - f_ht d,  Delta M = H (mdot_H2 + s_eq P_b/LHV),
 %              s_eq = s0 (1 + k (SoC_ref - SoC)) dang ECMS [R30]
 %       J_tg = kt mdot_ht (H - d/V_ref)
-%       J_dk = ku mdot_ht H u2   (u2 = muc dung canh lai, dang phat bac hai nhu [R11])
+%       J_bq = kb f_ht l_lech    (l_lech = quang duong du bao bay voi |e_py| > e_max trong
+%              H giay: H2 dot ma khong bam duoc duong)
 %       J_rr = p_vp f_ht L_nv     (H2 de bay lai nhiem vu; 0 neu nhiem vu da vi pham)
 %     Rang buoc: R1 u_0.9 <= 1 (AFP + CQR [R32], eps = 0.1); R2 a_(1-delta) <= 1 (bien
 %     stall + CQR); R3 SoC du bao >= 0.35; R4 van toc trim duoc (ctx.Va_allowed).
@@ -58,7 +59,7 @@ prog = rf_predict(mdl.prog, X(:, mdl.prog.cols));
 h2   = rf_predict(mdl.h2, X(:, mdl.h2.cols));
 pb   = rf_predict(mdl.pb, X(:, mdl.pb.cols));
 pbat = rf_predict(mdl.pbat, X(:, mdl.pbat.cols));
-u2   = min(max(rf_predict(mdl.u2, X(:, mdl.u2.cols)), 0), 1);
+loff = H*max(rf_predict(mdl.loff, X(:, mdl.loff.cols)), 0);
 d = H*max(prog, 0);
 s_eq = nm.s0*(1 + nm.k_soc*(ctx.soc_ref - ctx.soc));
 dM = H*(h2 + s_eq*pb/nm.LHV);
@@ -70,11 +71,11 @@ if pol.deg
 end
 Jnl = dM - ctx.f_ht*d;
 Jtg = pol.kt*ctx.mdot_ht*(H - d/nm.V_ref);
-Jdk = pol.ku*ctx.mdot_ht*H*u2;
+Jbq = pol.kb*ctx.f_ht*loff;
 Jrr = pvp*ctx.f_ht*ctx.L_nv*(pol.jrr && ~ctx.task_violated);
 switch pol.obj
-    case 'J',     J = Jnl + Jtg + Jdk + Jrr;
-    case 'norm',  J = Jnl/nm.med(1) + Jtg/nm.med(2) + Jdk/nm.med(3) + Jrr/nm.med(4);
+    case 'J',     J = Jnl + Jtg + Jbq + Jrr;
+    case 'norm',  J = Jnl/nm.med(1) + Jtg/nm.med(2) + Jbq/nm.med(3) + Jrr/nm.med(4);
     case 'min_u', J = u;
 end
 

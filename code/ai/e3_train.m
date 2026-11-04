@@ -10,10 +10,10 @@ function [M, rep] = e3_train(D, opts)
 %     stall  rung luong tu cua a = alpha_p99/alpha0; CQR o muc delta = 0.005 / 0.01 / 0.02
 %            (R2). Hieu chuan theo nhom gio chi khi moi nhom co it nhat 20 mau vuot ky
 %            vong (n_nhom * delta >= 20, GT); neu khong thi hieu chuan chung.
-%     prog, h2, pb, pbat, u2, fcuv, bd   rung hoi quy (mo hinh thay the)
+%     prog, h2, pb, pbat, loff, fcuv, bd   rung hoi quy (mo hinh thay the)
 %   Sieu tham so rung (GT): 60 cay, la toi thieu 20 mau, so dac trung moi lan chia = 1/3
 %   ([R39] dung 1000 cay, la > 10, mtry = p/3; ket qua it nhay voi mtry va co la).
-%   M.norm.med: trung vi |J_nl|, |J_tg|, |J_dk|, |J_rr| tren tap huan luyen (chinh sach C5);
+%   M.norm.med: trung vi |J_nl|, |J_tg|, |J_bq|, |J_rr| tren tap huan luyen (chinh sach C5);
 %   trung vi J_rr chi lay tren cac cua so nhiem vu chua vi pham (o cac cua so khac J_rr = 0).
 %   rep.test: chi so tren tap kiem tra; rep.calib: do hieu chinh cua p_vp (bien the full).
 if nargin < 2, opts = struct(); end
@@ -31,7 +31,7 @@ nm = struct('H', 10, 'V_ref', 25, 'LHV', 120e6, 's0', 2.5, 'k_soc', 3, 'soc_floo
 M.split = sp; M.names = D.names; M.opts = opts;
 
 drop = struct('full', [], 'A4', G.config, 'A5', G.wind, 'A6', G.elec);
-surr = {'prog', 'h2', 'pb', 'pbat', 'u2', 'fcuv', 'bd'};
+surr = {'prog', 'h2', 'pb', 'pbat', 'loff', 'fcuv', 'bd'};
 rows = {};
 for v = opts.variants
     cols = setdiff(1:size(D.X, 2), drop.(v{1}));
@@ -88,11 +88,11 @@ Xc = D.X(rc, :);
 H = nm.H;
 [~, pv] = qrf_predict(mf.afp, Xc(:, mf.afp.cols), opts.tau, 1);
 prog = rf_predict(mf.prog, Xc(:, mf.prog.cols)); h2 = rf_predict(mf.h2, Xc(:, mf.h2.cols));
-pb = rf_predict(mf.pb, Xc(:, mf.pb.cols)); u2 = min(max(rf_predict(mf.u2, Xc(:, mf.u2.cols)), 0), 1);
+pb = rf_predict(mf.pb, Xc(:, mf.pb.cols)); loff = max(rf_predict(mf.loff, Xc(:, mf.loff.cols)), 0);
 soc = Xc(:, strcmp(D.names, 'soc')); mdot = D.mdot_ht(rc); fht = mdot/nm.V_ref;
 d = H*max(prog, 0);
 s_eq = nm.s0*(1 + nm.k_soc*(D.soc_ref(rc) - soc));
-Jt = [H*(h2 + s_eq.*pb/nm.LHV) - fht.*d, mdot.*(H - d/nm.V_ref), mdot*H.*u2, ...
+Jt = [H*(h2 + s_eq.*pb/nm.LHV) - fht.*d, mdot.*(H - d/nm.V_ref), fht*H.*loff, ...
       pv.*fht.*D.L_nv(rc).*~D.task_viol(rc)];
 med = median(abs(Jt), 1);
 med(4) = median(Jt(~D.task_viol(rc), 4));
