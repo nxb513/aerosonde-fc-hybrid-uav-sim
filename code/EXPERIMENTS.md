@@ -28,6 +28,8 @@
 | Dự trữ ổn định ở CG tham chiếu | 0.49 c̄ (rất cao) | → CG là biến thiết kế, dịch lùi 2–8 cm |
 | Các mode | short-period −4.7 ± 9.7i, phugoid −0.04 ± 0.50i, roll −21, dutch-roll −1.4 ± 5.8i, spiral +0.05 | hợp lý |
 
+**Máy bay dùng trong thí nghiệm** (13.17–13.80 kg, mục 2): stall 17.7–18.1 m/s; trim được 20–31 m/s; công suất điện ở 25 m/s 416–423 W; góc leo tối đa ở 25 m/s 8.6–9.2°; bank quay vòng đều tối đa 50–52°. Cả 7 vận tốc 22–28 m/s trim được với mọi CG trong [−8, 0] cm.
+
 **Giả thiết (GT):**
 - Servo: [R37] không cho thông số. Dùng bậc 2, ωn = 100 rad/s, ζ = 0.707, trễ 0.07 s, tốc độ 200°/s, giới hạn góc 25°.
 - Hệ số khí động: bất định 10% (1σ), vì [R37] không cho độ lệch chuẩn. Mỗi kịch bản lấy một mẫu (`ac_perturb`).
@@ -37,12 +39,11 @@
 
 - **Kiến trúc:** bán chủ động [R3]: FC và siêu tụ qua DC/DC (hiệu suất 0.95, GT), pin nối thẳng bus.
 - **FC:** đường phân cực AeroStack [R24], co theo diện tích cell; trễ kích hoạt τ = Td/3 [R19]; giới hạn tốc độ tăng dòng 2 A/s cho stack 200 W [R25].
-  - Hai cấu hình:
-    - **nhẹ:** 600 W @ 458 W/kg [R3], bình 1 h, khoảng 13.7 kg;
-    - **nặng:** 600 W @ 224 W/kg [R5], bình 2 h, khoảng 16.8 kg.
+  - Một cấu hình: 600 W @ 458 W/kg [R3], FC nặng 1.31 kg.
   - Td = 10 s (danh định). S1 xét Td = 1 và 20 s.
-- **Bình H₂:** composite 1.4% H₂ theo khối lượng [R26]. Dung tích tính cho thời gian thiết kế ở 60% P_fc, hiệu suất 45% (GT).
-  - **Mức nạp ban đầu** {25, 50, 100}% dung tích; khối lượng bình giữ nguyên.
+- **Bình H₂:** bình nén chứa 6% H₂ theo khối lượng, cộng bộ điều áp 175 g [R35]. Luôn nạp đầy 100 g H₂ (GT), nên bình và điều áp nặng 1.84 kg.
+  - Bay hành trình ở 25 m/s tốn 6.6–7.1 mg/s H₂, tức khoảng 4 h khi bình đầy.
+- **Khối lượng máy bay:** 13.80 kg (pin 1.52 kg, siêu tụ 0.63 kg); bản không siêu tụ 13.17 kg.
 - **Pin:** 13S (42.9 V), tham số cell Li-ion 3.3 V 2.3 Ah [R4, Bảng 1]. [R4] chỉ ghi "Li-ion"; coi là cell LiFePO₄ (GT, theo điện áp 3.3 V) để dùng mô hình lão hóa LiFePO₄ [R18].
 - **Siêu tụ:** Maxwell 58 F 16 V [R3], mô hình C–ESR. A7 bỏ siêu tụ.
 - **EMS lọc tần số** [R3], **tần số cắt cố định f_c = 0.1 Hz** (GT): FC nhận thành phần tần số thấp, siêu tụ nhận phần cao, pin bù phần còn lại. S6 xét f_c = 0.06 và 0.3 Hz.
@@ -112,7 +113,7 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 - m = max(lệnh lái / 25°, α_p99 / α_lim, bão hòa tốc độ lái liên tục / 0.2 s, bão hòa động cơ liên tục / 1 s, dòng pin cần / 10C).
 - Vi phạm khi m > 1; rơi thì m = 2. α_lim = α0 − 2° = 12°. Ngưỡng 0.2 s và 1 s là GT.
 
-**Điều kiện dừng chuyến bay:** hết H₂; SoC < 30% (dự trữ hạ cánh [R27]); rơi (h < 5 m); hoặc quá 4 h.
+**Điều kiện dừng chuyến bay:** hết H₂; SoC < 30% (dự trữ hạ cánh [R27]); rơi (h < 5 m); hoặc quá 8 h (giới hạn kỹ thuật).
 
 **Bước tích phân** 0.01 s (RK4).
 - Kiểm tra ở gió lặng: so với 0.0025 s, H₂, SoC và thời gian nhiệm vụ lệch dưới 0.5%, và phân loại vi phạm giống nhau.
@@ -122,15 +123,15 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 
 | | E3X: thăm dò (huấn luyện) | E3: đánh giá |
 |---|---|---|
-| Số chuyến bay | 2000 × 10 phút | 22 chính sách × 144 kịch bản + 12 bản độ nhạy × 48 = 3744 |
+| Số chuyến bay | 2000 × 10 phút | (22 chính sách + 12 bản độ nhạy) × 48 kịch bản = 1632, mỗi chuyến khoảng 4 h bay |
 | Chính sách | kiểu bay ngẫu nhiên liên tục (φ̄ U[10, 50]°, γ̄ U[2, 10]°, V_a U[22, 28] m/s), giữ 10 s | xem mục 6 |
-| Cấu hình | nhẹ/nặng; CG U[−8, 0] cm; Td {1, 10, 20} s; f_c {0.06, 0.1, 0.3} Hz; 20% không siêu tụ | nhẹ/nặng × CG {−6, −2} cm; Td 10 s; f_c 0.1 Hz |
+| Cấu hình | một cấu hình (mục 2); CG U[−8, 0] cm; Td {1, 10, 20} s; f_c {0.06, 0.1, 0.3} Hz; 20% không siêu tụ | một cấu hình; CG {−6, −2} cm; Td 10 s; f_c 0.1 Hz |
 | Gió | W̄ U[0, 12] | W̄ {0, 4, 8, 12} |
-| Nhiên liệu, trạng thái đầu | SoC U[0.35, 0.95], siêu tụ U[0.3, 1] | mức nạp {25, 50, 100}%; SoC U[0.5, 0.9], siêu tụ U[0.3, 1] |
-| Seed | mỗi chuyến một seed | 3 (cùng nhiệm vụ, gió, khí động cho mọi chính sách) |
+| Nhiên liệu, trạng thái đầu | bình đầy 100 g; SoC U[0.35, 0.95], siêu tụ U[0.3, 1] | bình đầy 100 g; SoC U[0.5, 0.9], siêu tụ U[0.3, 1] |
+| Seed | mỗi chuyến một seed | 6 (cùng nhiệm vụ, gió, khí động cho mọi chính sách và mọi bản độ nhạy) |
 
 **Huấn luyện** (`ai/e3_train_all`):
-- **Dữ liệu:** mỗi cửa sổ 10 s của E3X là một mẫu, 32 đặc trưng (`flight/e3_features`).
+- **Dữ liệu:** mỗi cửa sổ 10 s của E3X là một mẫu, 31 đặc trưng (`flight/e3_features`). Công suất FC không là đặc trưng vì chỉ có một cấu hình FC.
 - **Chia dữ liệu:** theo chuyến bay, 60/20/20 cho huấn luyện / hiệu chuẩn / kiểm tra.
 - **AFP:** rừng hồi quy lượng tử [R39] τ = 0.9 cộng CQR một phía [R32], ε = 0.1, hiệu chuẩn theo nhóm mức gió; p_vp = P(m > 1) đọc từ cùng rừng.
 - **Rừng biên stall:** phân vị 0.99 của α_p99/α0 cộng CQR, δ = 0.01.
@@ -161,7 +162,7 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 | A1 | Bỏ mô hình vi phạm m: không R1, J_rr = 0; giữ R2 |
 | A2 | Không hiệu chỉnh conformal (R1, R2 dùng phân vị thô) |
 | A3 | Conformal chung cho R1, R2, không chia nhóm gió |
-| A4 / A5 / A6 | Không đặc trưng cấu hình / gió / trạng thái điện (huấn luyện lại); A5 dùng conformal chung |
+| A4 / A5 / A6 | Không đặc trưng cấu hình (khối lượng, CG, dự trữ ổn định, J_y, siêu tụ, Td, f_c) / gió / trạng thái điện (huấn luyện lại); A5 dùng conformal chung. Trong E3 chỉ CG thay đổi giữa các kịch bản, nên A4 chủ yếu đo giá trị của việc biết CG |
 | A7 | Bỏ siêu tụ (phần cứng) |
 | C1 | Bỏ J_rr, giữ R1 |
 | C2 | Bỏ R2; khi nới thì chọn cận trên R1 nhỏ nhất |
@@ -169,14 +170,14 @@ Khi pin chạm giới hạn xả, động cơ chỉ nhận phần công suất c
 | C5 | Cùng 4 khoản, mỗi khoản chia trung vị trên dữ liệu huấn luyện, cộng trọng số bằng nhau; trung vị J_rr chỉ lấy trên cửa sổ nhiệm vụ chưa vi phạm (ở cửa sổ khác J_rr = 0) |
 | C6 | Bỏ R1, giữ J_rr |
 | ours_deg | Thêm chi phí suy giảm quy ra H₂ theo giá [R14] |
-| S1 … S6 (48 kịch bản) | Td 1/20 s; chu kỳ 1/4 s; κ_t 0.5/2; κ_u 0.5/2; δ 0.005/0.02; f_c 0.06/0.3 Hz |
+| S1 … S6 (cùng 48 kịch bản) | Td 1/20 s; chu kỳ 1/4 s; κ_t 0.5/2; κ_u 0.5/2; δ 0.005/0.02; f_c 0.06/0.3 Hz |
 
 ## 7. Hạ tầng
 
 - Repo public; workflow `.github/workflows/e3.yml` chạy tối đa 20 job song song.
   - `stage=explore`: 20 job E3X, gộp thành `E3X-all`.
   - Huấn luyện và báo cáo AI từ dữ liệu E3X, rồi **dừng chờ duyệt**.
-  - Đánh giá E3 dùng lại bộ mô hình đã duyệt: 120 job (GitHub dừng job chạy quá 6 giờ), gộp và phân tích.
+  - Đánh giá E3 dùng lại bộ mô hình đã duyệt: 160 job, mỗi job trung bình khoảng 2.5 giờ (GitHub dừng job chạy quá 6 giờ, tối đa 256 job một lần chạy), gộp và phân tích.
   - `stage=test`: 7 chuyến bay ngắn (E3T) để kiểm tra quy trình.
 - **Checkpoint:**
   - `ckpt_<job>.mat` ghi sau mỗi chuyến bay;
@@ -199,4 +200,4 @@ Các chi tiết dưới đây không đổi ý tưởng của bản chốt; chú
 | Ngưỡng chạy không tải / tải cao của FC (chỉ dùng để đánh giá suy giảm) | 20% / 80% P_max theo [R10] | Dùng giá trị có nguồn |
 | Hiệu chỉnh SoC và siêu tụ trong EMS | k_soc = 2, k_e = 0.5 (GT), tương ứng hằng số thời gian hồi phục khoảng 5 phút (SoC) và 25 s (siêu tụ) | Đặt theo ý nghĩa vật lý thay vì số tùy ý |
 | ECMS (baseline) | Đường cong FC giới hạn ở công suất định mức; siêu tụ tách tần số với cùng f_c = 0.1 Hz | Cùng giới hạn cứng và cùng cách dùng siêu tụ, chỉ khác cách chia FC/pin |
-| T_max = 4 h | Giới hạn kỹ thuật, dài hơn chuyến bay dài nhất có thể; báo cáo số lần chạm (kỳ vọng 0) | Chống chạy mãi nếu có lỗi |
+| T_max = 8 h | Giới hạn kỹ thuật, khoảng gấp đôi thời gian bay với 100 g H₂; báo cáo số lần chạm (kỳ vọng 0) | Chống chạy mãi nếu có lỗi |

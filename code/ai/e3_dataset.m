@@ -1,7 +1,7 @@
 function D = e3_dataset(traces)
 %E3_DATASET Bang mau (moi cua so 10 s mot dong) tu cac chuyen bay tham do E3X.
 %   D = E3_DATASET(traces), traces lay tu gather_results('E3X'). Cot cua windows theo
-%   trace.window_names (run_flight): id, nhiem vu, 32 dac trung (e3_features), roi nhan:
+%   trace.window_names (run_flight): id, nhiem vu, 31 dac trung (e3_features), roi nhan:
 %     dur, m, m1..m5 (5 thanh phan cua m), a = alpha_p99/alpha0, prog (toc do tien, m/s),
 %     h2 (kg/s), pb (cong suat pin + sieu tu ra bus, W), pbat (chi pin, W), u2 (muc dung
 %     canh lai), bd (suy giam pin, %/s), fcuv (sut ap FC, uV/cell/s), crash,

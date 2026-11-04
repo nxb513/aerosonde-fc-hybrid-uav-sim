@@ -122,7 +122,8 @@ F.po = struct('P_fc', trs{i25}.Pel, 'V_bus', F.ps.V_bus, 'P_motor_cap', inf);
 F.lim = struct('surf_angle', 0, 'surf_rate', 0, 'motor', 0);
 F.u2_int = 0;
 F.stop = false; F.reason = '';
-F.TK = zeros(0, 19); F.WN = zeros(0, 2 + 32 + 20, 'single'); F.DL = zeros(0, 13, 'single');
+F.TK = zeros(0, 19); F.WN = zeros(0, 2 + numel(e3_feature_names()) + 20, 'single');
+F.DL = zeros(0, 13, 'single');
 % Cua so tren quy dao cua chinh sach (chi chinh sach 'model')
 F.track = strcmp(pol.kind, 'model');
 F.ow = struct('meta', zeros(0, 11), 'mx', zeros(0, 5), 'h', zeros(4500, 0));
@@ -353,7 +354,7 @@ ctx.dh_rem = tk.h_t - k.h; ctx.e_py = abs(gd.e_py); ctx.kappa = gd.kappa;
 ctx.d_wp = min(gd.d_wp, 3000); ctx.turn_next = gd.turn_next;
 ctx.mass = p.mass.m; ctx.x_cg = p.mass.r_cg(1);
 ctx.SM = -p.aero.Cma/p.aero.CLa + p.mass.r_cg(1)/p.geom.c; ctx.Jy = p.mass.J(2, 2);
-ctx.P_fc = fl.P_fc; ctx.sc_use = double(pp.sc.use); ctx.Td = fl.Td; ctx.f_c = fl.f_c;
+ctx.sc_use = double(pp.sc.use); ctx.Td = fl.Td; ctx.f_c = fl.f_c;
 Wv = F.w.mean_ned; ctx.W = norm(Wv(1:2)); ctx.turb = F.turb_now;
 rel = atan2(-Wv(2), -Wv(1)) - k.chi;                 % huong gio thoi tu, so voi huong bay
 ctx.cos_rel = cos(rel); ctx.sin_rel = sin(rel);

@@ -40,7 +40,7 @@ classdef FlightTest < matlab.unittest.TestCase
         end
 
         function stopsWhenHydrogenRunsOut(tc)
-            fl = struct('policy', 'fixed_nominal', 'fill', 0.004, 'W_lvl', 2, 'id', 1);
+            fl = struct('policy', 'fixed_nominal', 'fill', 0.001, 'W_lvl', 2, 'id', 1);
             r = run_flight(fl, []);
             tc.verifyEqual(r.stop_reason, 'h2');
             tc.verifyGreaterThanOrEqual(r.H2_used_g, r.H2_avail_g);
@@ -106,10 +106,15 @@ classdef FlightTest < matlab.unittest.TestCase
 
         function gridMatchesDesign(tc)
             S = grid_def('E3');
-            tc.verifyEqual(numel(S), 22*144 + 12*48);
+            tc.verifyEqual(numel(S), (22 + 12)*48);
             pols = unique({S.policy});
             tc.verifyEqual(numel(pols), 34);
-            for k = 1:numel(pols), policy_def(pols{k}); end     % ten nao sai se bao loi
+            for k = 1:numel(pols)
+                policy_def(pols{k});                            % ten nao sai se bao loi
+                s = S(strcmp({S.policy}, pols{k}));
+                tc.verifyEqual(numel(unique([s.seed])), 48);    % moi chinh sach du 48 kich ban
+            end
+            tc.verifyTrue(all([S.fill] == 1) && all([S.m_H2] == 0.1) && all([S.fc_wkg] == 458));
             X = grid_def('E3X');
             tc.verifyEqual(numel(X), 2000);
             tc.verifyTrue(all(ismember([X.f_c], [0.06 0.1 0.3])));

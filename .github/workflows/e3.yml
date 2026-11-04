@@ -4,8 +4,8 @@ name: e3
 #   stage = explore: 2000 chuyen bay tham do (E3X), 20 job -> E3X-all
 #   stage = train:   huan luyen bo mo hinh tu E3X-all cua run explore_run (+ learning curve)
 #                    -> E3-models, E3X-report. Dung o day de duyet ket qua AI.
-#   stage = eval:    3744 chuyen bay danh gia (E3) voi bo mo hinh E3-models cua run
-#                    models_run, 120 job chay toi da 20 job mot luc -> E3-all
+#   stage = eval:    1632 chuyen bay danh gia (E3, moi chuyen ~4 h bay) voi bo mo hinh
+#                    E3-models cua run models_run, 160 job chay toi da 20 job mot luc -> E3-all
 #   stage = test:    7 chuyen bay ngan (E3T) de kiem tra quy trinh
 # Chay lai job loi ("Re-run failed jobs"): job tai checkpoint cua chinh no va chay tiep.
 on:
@@ -30,7 +30,7 @@ permissions:
 
 env:
   EXP: ${{ inputs.stage == 'eval' && 'E3' || (inputs.stage == 'test' && 'E3T' || 'E3X') }}
-  NJOBS: ${{ inputs.stage == 'eval' && '120' || (inputs.stage == 'test' && '7' || '20') }}
+  NJOBS: ${{ inputs.stage == 'eval' && '160' || (inputs.stage == 'test' && '7' || '20') }}
 
 jobs:
   train:
@@ -72,7 +72,7 @@ jobs:
       fail-fast: false
       max-parallel: 20
       matrix:
-        job: ${{ fromJSON(inputs.stage == 'eval' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]' || (inputs.stage == 'test' && '[1,2,3,4,5,6,7]' || '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]')) }}
+        job: ${{ fromJSON(inputs.stage == 'eval' && '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160]' || (inputs.stage == 'test' && '[1,2,3,4,5,6,7]' || '[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]')) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

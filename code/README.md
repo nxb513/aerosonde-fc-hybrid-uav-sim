@@ -11,7 +11,7 @@ Thiết kế thí nghiệm (bản chốt 03/11/2026), nguồn tham số và các
 ```matlab
 cd code
 run_tests
-setup_paths; r = run_flight(struct('policy', 'fixed_nominal', 'fill', 0.25));
+setup_paths; r = run_flight(struct('policy', 'fixed_nominal', 'T_max', 600));
 flight_envelope([11 13 15 17], 42.9, 'results/flight_envelope.md')
 ```
 

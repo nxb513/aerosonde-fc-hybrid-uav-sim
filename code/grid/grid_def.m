@@ -4,12 +4,12 @@ function S = grid_def(exp)
 %   S = GRID_DEF('E3X')  2000 chuyen bay tham do 10 phut, kieu bay lien tuc ngau nhien
 %                        giu 10 s (du lieu huan luyen AFP, rung bien stall, mo hinh thay
 %                        the, learning curve)
-%   S = GRID_DEF('E3')   danh gia: 22 chinh sach x 144 kich ban + 12 ban do nhay x 48
-%                        kich ban (seed 1) = 3744 chuyen bay
+%   S = GRID_DEF('E3')   danh gia: (22 chinh sach + 12 ban do nhay) x 48 kich ban
+%                        = 1632 chuyen bay; kich ban = CG {-6, -2} cm x muc gio
+%                        {0, 4, 8, 12} m/s x 6 seed
 %   S = GRID_DEF('E3T')  7 chuyen bay ngan de kiem tra quy trinh
-%   Cau hinh "nhe": FC 600 W @ 458 W/kg [R3], binh 1 h (~13.7 kg);
-%   "nang": FC 600 W @ 224 W/kg [R5], binh 2 h (~16.8 kg). Dai tham so: checks/flight_envelope.
-cfg = [600 458 1; 600 224 2];
+%   Mot cau hinh: FC 600 W @ 458 W/kg [R3], 100 g H2 nap day, binh nen 6 % + dieu ap
+%   175 g [R35] (power_params). Dai tham so: checks/flight_envelope.
 switch exp
     case 'E3X'
         N = 2000;
@@ -19,8 +19,6 @@ switch exp
         S = repmat(flight_default(), N, 1);
         for i = 1:N
             s = flight_default();
-            c = cfg(randi(rs, 2), :);
-            s.P_fc = c(1); s.fc_wkg = c(2); s.endur_h = c(3);
             s.dx_cg = u(-0.08, 0); s.W_lvl = u(0, 12);
             s.soc0 = u(0.35, 0.95); s.esc0 = u(0.3, 1);
             s.Td = pick([1 10 20]); s.f_c = pick([0.06 0.1 0.3]);
@@ -39,29 +37,21 @@ switch exp
                 'ours_deg'};
         sens = {'S1_Td1', 'S1_Td20', 'S2_Tp1', 'S2_Tp4', 'S3_kt05', 'S3_kt2', ...
                 'S4_ku05', 'S4_ku2', 'S5_d005', 'S5_d02', 'S6_fc006', 'S6_fc03'};
-        [a1, a2, a3, a4, a5] = ndgrid(1:2, [-0.06 -0.02], [0 4 8 12], [0.25 0.5 1], 1:3);
-        base = repmat(flight_default(), numel(a1), 1);
+        [a2, a3, a5] = ndgrid([-0.06 -0.02], [0 4 8 12], 1:6);
+        base = repmat(flight_default(), numel(a2), 1);
         rs = RandStream('mt19937ar', 'Seed', 2032);
-        for j = 1:numel(a1)
+        for j = 1:numel(a2)
             s = flight_default();
-            c = cfg(a1(j), :);
-            s.P_fc = c(1); s.fc_wkg = c(2); s.endur_h = c(3);
-            s.dx_cg = a2(j); s.W_lvl = a3(j); s.fill = a4(j);
+            s.dx_cg = a2(j); s.W_lvl = a3(j);
             s.soc0 = 0.5 + 0.4*rand(rs); s.esc0 = 0.3 + 0.7*rand(rs);
             s.seed = 100*j + a5(j); s.wind_seed = s.seed; s.aero_seed = 100 + a5(j);
             base(j) = orderfields(s, base(1));
         end
         S = repmat(flight_default(), 0, 1); id = 0;
-        for k = 1:numel(main)
+        for k = 1:numel(main) + numel(sens)   % ban do nhay chay tren ca 48 kich ban
+            if k <= numel(main), name = main{k}; else, name = sens{k - numel(main)}; end
             for j = 1:numel(base)
-                s = with_policy(base(j), main{k}); id = id + 1; s.id = id;
-                S(end+1, 1) = orderfields(s, base(1)); %#ok<AGROW>
-            end
-        end
-        sub = find(a5(:) == 1).';                 % do nhay chi tren seed 1 (48 kich ban)
-        for k = 1:numel(sens)
-            for j = sub
-                s = with_policy(base(j), sens{k}); id = id + 1; s.id = id;
+                s = with_policy(base(j), name); id = id + 1; s.id = id;
                 S(end+1, 1) = orderfields(s, base(1)); %#ok<AGROW>
             end
         end

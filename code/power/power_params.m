@@ -3,9 +3,8 @@ function pp = power_params(cfg)
 %   pp = POWER_PARAMS(cfg). Truong cfg (mac dinh trong ngoac):
 %     P_fc     cong suat dinh muc FC, W (600). Dinh co so voi cong suat hanh trinh
 %              400-470 W cua Aerosonde 11-17 kg o 25 m/s (checks/flight_envelope).
-%     fc_wkg   cong suat rieng FC + bo dieu khien, W/kg (458): 224 (FLY-150 [R5])
-%              hoac 458 (AeroStack 1 kW, 2182 g [R3]).
-%     endur_h  thoi gian bay thiet ke de dinh co binh H2, h (1) -- GT.
+%     fc_wkg   cong suat rieng FC + bo dieu khien, W/kg (458, AeroStack 1 kW 2182 g [R3]).
+%     m_H2     luong H2 khi nap day, kg (0.1) -- GT.
 %     Td       thoi gian dap ung FC dat 95 %, s (10): 1 [R19] .. 10-20 [R24].
 %     ramp     gioi han toc do tang dong cua stack 200 W tham chieu, A/s (2) [R25].
 %     Np       so nhanh song song pin 13S (1).
@@ -18,8 +17,8 @@ function pp = power_params(cfg)
 %   Mo hinh:
 %     FC   duong phan cuc AeroStack 35 cell [R24, Eq. 1], co theo dien tich cell
 %          s = P_fc/200; tre kich hoat tau = Td/3 [R19, Eq. 1].
-%     H2   binh composite chua 1.4 % H2 theo khoi luong [R26]; luong H2 = 0.6 P_fc *
-%          endur / (0.45 * LHV) (GT: tai trung binh 60 % dinh muc, hieu suat FC 45 %).
+%     H2   binh nen chua 6 % H2 theo khoi luong, cong bo dieu ap 175 g [R35]:
+%          khoi luong binh = m_H2/0.06 + 0.175 kg.
 %     Pin  cell LiFePO4 3.3 V 2.3 Ah Tremblay [R4, Bang 1], 13S (42.9 V danh dinh);
 %          khoi luong 65 Wh/kg (pack 4S 1500 mAh 343 g [R5]) -- GT.
 %     Tai nen avionics + nhiem vu 20 W [R25].
@@ -28,14 +27,13 @@ function pp = power_params(cfg)
 %     Pin: dong xa <= 10C, dong sac <= 1C (GT), ngat sac khi SoC = 100 %.
 %     Sieu tu: nang luong 25-100 % [R3], dong <= Imax (GT).
 if nargin < 1, cfg = struct(); end
-def = struct('P_fc', 600, 'fc_wkg', 458, 'endur_h', 1, 'Td', 10, 'ramp', 2, 'Np', 1, ...
+def = struct('P_fc', 600, 'fc_wkg', 458, 'm_H2', 0.1, 'Td', 10, 'ramp', 2, 'Np', 1, ...
     'sc_type', 2, 'esr_sc', 0.010, 'eta_dc', 0.95, 'f_c', 0.1);
 f = fieldnames(def);
 for k = 1:numel(f)
     if ~isfield(cfg, f{k}), cfg.(f{k}) = def.(f{k}); end
 end
 pp.cfg = cfg;
-LHV = 120e6;
 
 %% Pin nhien lieu
 s = cfg.P_fc/200;
@@ -50,9 +48,8 @@ fc.tau   = cfg.Td/3;
 fc.ramp  = cfg.ramp*s;
 fc.eta_F_hi = 0.9; fc.eta_F_lo = 0.4; fc.P_eta_switch = 50*s;   % [R24]
 fc.mass  = cfg.P_fc/cfg.fc_wkg;
-m_H2 = 0.6*cfg.P_fc*cfg.endur_h*3600/(0.45*LHV);
-fc.mass_tank = m_H2/0.014;              % [R26]
-fc.m_H2_cap = m_H2;                     % dung tich H2 khi nap day (kg)
+fc.mass_tank = cfg.m_H2/0.06 + 0.175;  % binh nen 6 % + bo dieu ap 175 g [R35]
+fc.m_H2_cap = cfg.m_H2;                 % dung tich H2 khi nap day (kg)
 % Suy giam (chi dung de danh gia): sut ap moi cell [R17, Bang 1], k = 1.72 [R16];
 % nguong chay khong tai / tai cao 20 % / 80 % P_max theo [R10, Eq. 16-17].
 fc.deg = struct('load_uV', 0.4185, 'idle_uV_h', 8.662, 'high_uV_h', 10.00, ...

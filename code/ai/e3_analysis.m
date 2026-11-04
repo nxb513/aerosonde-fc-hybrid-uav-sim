@@ -2,9 +2,8 @@ function R = e3_analysis(indir, exp)
 %E3_ANALYSIS Phan tich thi nghiem danh gia E3 (so sanh chinh sach, ablation, do nhay).
 %   R = E3_ANALYSIS(indir, exp); mac dinh indir = results/<exp>, exp = 'E3'
 %   (all_<exp>.mat tu gather_results).
-%   Moi chinh sach bay cung 144 kich ban (cung chuoi nhiem vu, gio, khoi dau): so sanh
-%   theo cap voi 'ours' bang kiem dinh hang co dau Wilcoxon (signrank) tren cac kich ban
-%   chung; ban do nhay chi co 48 kich ban (seed 1).
+%   Moi chinh sach va ban do nhay bay cung 48 kich ban (cung chuoi nhiem vu, gio, khoi
+%   dau): so sanh theo cap voi 'ours' bang kiem dinh hang co dau Wilcoxon (signrank).
 %   Chi so moi chuyen bay (bao_cao/thiet_ke_E3.pdf muc 8):
 %     n_ok        so nhiem vu dat (bay xong, m <= 1) (chinh)
 %     crash, n_viol, viol_time, thoi gian cham tung gioi han cung (lim_*)
@@ -73,7 +72,7 @@ writetable(R.paired, fullfile(out, 'paired_vs_ours.csv'));
 % ---- Theo muc gio va cau hinh
 R.by_wind = groupsummary(T, {'in_policy', 'in_W_lvl'}, {'mean'}, {'n_ok', 'crash', 'n_viol', 'H2_per_ok'});
 writetable(R.by_wind, fullfile(out, 'by_wind.csv'));
-R.by_config = groupsummary(T, {'in_policy', 'in_fc_wkg', 'in_dx_cg'}, {'mean'}, {'n_ok', 'crash', 'n_viol', 'H2_per_ok'});
+R.by_config = groupsummary(T, {'in_policy', 'in_dx_cg'}, {'mean'}, {'n_ok', 'crash', 'n_viol', 'H2_per_ok'});
 writetable(R.by_config, fullfile(out, 'by_config.csv'));
 
 % ---- Ti le nhiem vu dat theo loai
